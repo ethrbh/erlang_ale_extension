@@ -93,7 +93,7 @@ gpio_read({sup, Gpio}) ->
  	start_link({?MODULE, gpio_read, [Gpio]}, {?DRV_GPIO_MODULE, ?START_FUNC_DRV_MODULE, [Gpio, ?PIN_DIRECTION_INPUT]});
 gpio_read(Gpio) when is_integer(Gpio) ->
 	%% Start supervisor if not started yet.
-	Res = case erlang_ale_sup:start_link() of
+	Res = case do_start_erlang_ale_sup() of
 		{ok, _SupPid} ->
 			ChildId = {gpio, Gpio},
 			
@@ -151,7 +151,7 @@ gpio_write({sup, Gpio}, PinState) ->
  	start_link({?MODULE, gpio_write, [Gpio, PinState]}, {?DRV_GPIO_MODULE, ?START_FUNC_DRV_MODULE, [Gpio, ?PIN_DIRECTION_OUTPUT]});
 gpio_write(Gpio, PinState) when is_integer(Gpio), ((PinState == ?PIN_STATE_HIGH) or (PinState == ?PIN_STATE_LOW)) ->
 	%% Start supervisor if not started yet.
-	Res = case erlang_ale_sup:start_link() of
+	Res = case do_start_erlang_ale_sup() of
 		{ok, _SupPid} ->
 			ChildId = {gpio, Gpio},
 			
@@ -215,7 +215,7 @@ gpio_set_int(Gpio, IntCondition) when is_integer(Gpio) ->
 %% ====================================================================
 gpio_set_int(Gpio, IntCondition, Destination) when is_integer(Gpio) ->
 	%% Start supervisor if not started yet.
-	Res = case erlang_ale_sup:start_link() of
+	Res = case do_start_erlang_ale_sup() of
 		{ok, _SupPid} ->
 			ChildId = {gpio, Gpio},
 			
@@ -325,7 +325,7 @@ i2c_write(DeviceName, HWAddress, Data) when is_integer(Data)->
 	i2c_write(DeviceName, HWAddress, erlang:integer_to_binary(Data));
 i2c_write(DeviceName, HWAddress, Data) when is_binary(Data)->
 	%% Start supervisor if not started yet.
-	Res = case erlang_ale_sup:start_link() of
+	Res = case do_start_erlang_ale_sup() of
 		{ok, _SupPid} ->
 			
 			%% Start child process if not started yet.
@@ -366,7 +366,7 @@ i2c_read({sup, DeviceName}, HWAddress, Len) ->
  	start_link({?MODULE, i2c_read,  [DeviceName, HWAddress, Len]}, {?DRV_I2C_MODULE, ?START_FUNC_DRV_MODULE, [DeviceName, HWAddress]});
 i2c_read(DeviceName, HWAddress, Len) ->
 	%% Start supervisor if not started yet.
-	Res = case erlang_ale_sup:start_link() of
+	Res = case do_start_erlang_ale_sup() of
 		{ok, _SupPid} ->
 			
 			%% Start child process if not started yet.
@@ -430,7 +430,7 @@ spi_transfer({sup, DeviceName}, SpiOptions, Data) ->
  	start_link({?MODULE, spi_transfer, [DeviceName, SpiOptions, Data]}, {?DRV_SPI_MODULE, ?START_FUNC_DRV_MODULE, [DeviceName, SpiOptions]});
 spi_transfer(DeviceName, SpiOptions, Data) ->
 	%% Start supervisor if not started yet.
-	Res = case erlang_ale_sup:start_link() of
+	Res = case do_start_erlang_ale_sup() of
 		{ok, _SupPid} ->
 			
 			%% Start child process if not started yet.
@@ -820,3 +820,17 @@ do_get_child_spec({spi, DeviceName}, [{{spi, DeviceName}, AleHandlerPid, Worker,
 	{ok, {{spi, DeviceName}, AleHandlerPid, Worker, Modules}};
 do_get_child_spec(WhatToFind, [_|T]) ->
 	do_get_child_spec(WhatToFind, T).
+
+%% ====================================================================
+%% Start erlang_ale_sup:start_link().
+-spec do_start_erlang_ale_sup() -> {ok, pid()} | {error, term()}.
+%% ====================================================================
+do_start_erlang_ale_sup() ->
+	case erlang_ale_sup:start_link() of
+		{ok, Pid} ->
+			{ok, Pid};
+		{error,{already_started,Pid}} ->
+			{ok, Pid};
+		{error, R} ->
+			{error, R}
+	end.
