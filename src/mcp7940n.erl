@@ -498,7 +498,8 @@ date_and_time_get_in_str() ->
 -spec date_and_time_get_in_str(datetime() | {ok, datetime()}) -> {ok, list()} | {error, term()}.
 %% ====================================================================
 date_and_time_get_in_str(DateAndTime) ->
-	do_gen_server_call({execute_mfa, {?MODULE, do_date_and_time_get_in_str,[DateAndTime]}}).
+	%%do_gen_server_call({execute_mfa, {?MODULE, do_date_and_time_get_in_str,[DateAndTime]}}).
+	do_date_and_time_get_in_str(DateAndTime).
 
 %% ====================================================================
 %% @doc
@@ -2160,8 +2161,8 @@ do_date_and_time_get_in_str(DateAndTime) ->
 			TimeStr = concat_string([integer_to_list(Hour, 2, "0"), integer_to_list(Minute, 2, "0"), integer_to_list(Second, 2, "0")], ?TIME_STR_DELIMITER),
 			DateTimeStr = concat_string([DateStr, TimeStr], ?DATE_AND_TIME_STR_DELIMITER),
 			{ok, DateTimeStr};
-		{error, Reason} ->
-			{error, Reason}
+		_ ->
+			{error, {"Invalid DateAndTime stamp", DateAndTime}}
 	end.
 	
 %% ====================================================================
