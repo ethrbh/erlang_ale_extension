@@ -1,6 +1,6 @@
 {application, erlang_ale_extension, [
 	{description, ""},
-	{vsn, "0.1.0"},
+	{vsn, "0.1.1"},
 	{id, "git"},
 	{modules, []},
 	{registered, []},
