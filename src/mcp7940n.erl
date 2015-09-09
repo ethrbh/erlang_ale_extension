@@ -83,7 +83,8 @@
 %% RTC Date And Time related functions
 %% ====================================================================
 -export([date_and_time_set/1, 
-		 date_and_time_get/0
+		 date_and_time_get/0,
+		 date_and_time_get_in_str/0
 		]).
 
 %% ====================================================================
@@ -147,6 +148,7 @@
 %% RTC Date And Time related functions
 %% ====================================================================
 		 do_date_and_time_get/0,
+		 do_date_and_time_get_in_str/0,
 		 do_year_get/1,
 		 do_month_get/1,
 		 do_date_get/1,
@@ -477,6 +479,16 @@ date_and_time_set(DateTimeOrTimeFormat) ->
 %% ====================================================================
 date_and_time_get() ->
 	do_gen_server_call({execute_mfa, {?MODULE, do_date_and_time_get,[]}}).
+
+%% ====================================================================
+%% @doc
+%% Read Date and Time in RTC device and convert it to string.
+%% The timestamp string loks liek this: 2015-09-09 10:03:54
+%% @end
+-spec date_and_time_get_in_str() -> {ok, list()} | {error, term()}.
+%% ====================================================================
+date_and_time_get_in_str() ->
+	do_gen_server_call({execute_mfa, {?MODULE, do_date_and_time_get_in_str,[]}}).
 
 %% ====================================================================
 %% @doc
@@ -2109,7 +2121,23 @@ do_date_and_time_get() ->
 		ER->ER
 	end.
 
-
+%% ====================================================================
+%% @doc
+%% Read Date and Time in RTC device and convert it to string
+%% @end
+-spec do_date_and_time_get_in_str() -> {ok, list()} | {error, term()}.
+%% ====================================================================
+do_date_and_time_get_in_str() ->
+	case do_date_and_time_get() of
+		{ok, {{Year,Month,Date}, {Hour,Minute,Second}}} ->
+			DateStr = concat_string([erlang:integer_to_list(Year), erlang:integer_to_list(Month), erlang:integer_to_list(Date)], ?DATE_STR_DELIMITER),
+			TimeStr = concat_string([erlang:integer_to_list(Hour), erlang:integer_to_list(Minute), erlang:integer_to_list(Second)], ?TIME_STR_DELIMITER),
+			DateTimeStr = concat_string([DateStr, TimeStr], ?DATE_AND_TIME_STR_DELIMITER),
+			{ok, DateTimeStr};
+		{error, Reason} ->
+			{error, Reason}
+	end.
+	
 %% ====================================================================
 %% @doc
 %% Read Year in RTC device.
@@ -2667,3 +2695,24 @@ do_gen_server_call(MSG) ->
 			gen_server:call(?SERVER, MSG, ?TIMEOUT);
 		ER->{error, ER}
 	end.
+
+%% ====================================================================
+%% Concat strings.
+%% Input:
+%%		StringList	:	list(string())
+%%		Delimiter	:	string()
+%% Output:
+%%		String		:	string()
+%% ====================================================================
+concat_string(StringList, Delimiter) ->
+	concat_string_loop(StringList, Delimiter, "").
+
+concat_string_loop([], _Delimiter, String) ->
+	String;
+concat_string_loop([Str | T], Delimiter, String) when String == "" ->
+	%% Str is the 1st element in the list
+	concat_string_loop(T, Delimiter, Str);
+concat_string_loop([Str | T], Delimiter, String) ->
+	Str1 = string:concat(String, Delimiter),
+	Str2 = string:concat(Str1, Str),
+	concat_string_loop(T, Delimiter, Str2).

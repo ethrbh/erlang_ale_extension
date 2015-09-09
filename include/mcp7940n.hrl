@@ -14,6 +14,13 @@
 -include("ale_common.hrl").
 
 %% ====================================================================
+%% Defines for converting timestamp to string.
+%% ====================================================================
+-define(DATE_STR_DELIMITER, "-").
+-define(TIME_STR_DELIMITER, ":").
+-define(DATE_AND_TIME_STR_DELIMITER, " ").
+
+%% ====================================================================
 %% Notifications
 %% ====================================================================
 -define(NOTIFICATION_PWR_IS_BACK, main_power_is_back).
