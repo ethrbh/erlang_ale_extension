@@ -2156,8 +2156,8 @@ do_date_and_time_get_in_str({ok, DateAndTime}) ->
 do_date_and_time_get_in_str(DateAndTime) ->
 	case DateAndTime of
 		{{Year,Month,Date}, {Hour,Minute,Second}} ->
-			DateStr = concat_string([erlang:integer_to_list(Year), erlang:integer_to_list(Month), erlang:integer_to_list(Date)], ?DATE_STR_DELIMITER),
-			TimeStr = concat_string([erlang:integer_to_list(Hour), erlang:integer_to_list(Minute), erlang:integer_to_list(Second)], ?TIME_STR_DELIMITER),
+			DateStr = concat_string([integer_to_list(Year, 4, "0"), integer_to_list(Month, 2, "0"), integer_to_list(Date, 2, "0")], ?DATE_STR_DELIMITER),
+			TimeStr = concat_string([integer_to_list(Hour, 2, "0"), integer_to_list(Minute, 2, "0"), integer_to_list(Second, 2, "0")], ?TIME_STR_DELIMITER),
 			DateTimeStr = concat_string([DateStr, TimeStr], ?DATE_AND_TIME_STR_DELIMITER),
 			{ok, DateTimeStr};
 		{error, Reason} ->
@@ -2742,3 +2742,22 @@ concat_string_loop([Str | T], Delimiter, String) ->
 	Str1 = string:concat(String, Delimiter),
 	Str2 = string:concat(Str1, Str),
 	concat_string_loop(T, Delimiter, Str2).
+
+%% ====================================================================
+%% Convert integer to string with set the length of final string,
+%% so if the converted string is "2" but the wanted length of string is
+%% 2, the result will be "02".
+-spec integer_to_list(integer(), integer(), list()) -> list().
+%% ====================================================================
+integer_to_list(N, Length, Pad) ->
+	NStr = erlang:integer_to_list(N),
+	PadLength = case string:len(NStr) of
+					I when I < Length ->
+						Length - I;
+					_-> 0
+				end,
+	PrefixStr = string:copies(Pad,PadLength),
+	string:concat(PrefixStr, NStr).
+
+	
+			
