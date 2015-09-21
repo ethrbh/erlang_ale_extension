@@ -84,7 +84,8 @@
 %% ====================================================================
 -export([date_and_time_set/1, 
 		 date_and_time_get/0,
-		 date_and_time_get_in_str/0, date_and_time_get_in_str/1
+		 date_and_time_get_in_str/0, date_and_time_get_in_str/1,
+		 date_get_in_str/1, time_get_in_str/1
 		]).
 
 %% ====================================================================
@@ -149,6 +150,7 @@
 %% ====================================================================
 		 do_date_and_time_get/0,
 		 do_date_and_time_get_in_str/0, do_date_and_time_get_in_str/1,
+		 do_date_get_in_str/1, do_time_get_in_str/1,
 		 do_year_get/1,
 		 do_month_get/1,
 		 do_date_get/1,
@@ -493,13 +495,33 @@ date_and_time_get_in_str() ->
 %% ====================================================================
 %% @doc
 %% Read Date and Time in RTC device and convert it to string.
-%% The timestamp string loks liek this: 2015-09-09 10:03:54
+%% The timestamp string looks liek this: 2015-09-09 10:03:54
 %% @end
 -spec date_and_time_get_in_str(datetime() | {ok, datetime()}) -> {ok, list()} | {error, term()}.
 %% ====================================================================
 date_and_time_get_in_str(DateAndTime) ->
 	%%do_gen_server_call({execute_mfa, {?MODULE, do_date_and_time_get_in_str,[DateAndTime]}}).
 	do_date_and_time_get_in_str(DateAndTime).
+
+%% ====================================================================
+%% @doc
+%% Convert date to string.
+%% The date string looks liek this: 2015-09-09
+%% @end
+-spec date_get_in_str(date() | {ok, date()}) -> {ok, list()} | {error, term()}.
+%% ====================================================================
+date_get_in_str(Date) ->
+	do_date_get_in_str(Date).
+
+%% ====================================================================
+%% @doc
+%% Convert time to string.
+%% The date string looks liek this: 10:03:54
+%% @end
+-spec time_get_in_str(time() | {ok, time()}) -> {ok, list()} | {error, term()}.
+%% ====================================================================
+time_get_in_str(Time) ->
+	do_time_get_in_str(Time).
 
 %% ====================================================================
 %% @doc
@@ -2157,12 +2179,62 @@ do_date_and_time_get_in_str({ok, DateAndTime}) ->
 do_date_and_time_get_in_str(DateAndTime) ->
 	case DateAndTime of
 		{{Year,Month,Date}, {Hour,Minute,Second}} ->
-			DateStr = concat_string([integer_to_list(Year, 4, "0"), integer_to_list(Month, 2, "0"), integer_to_list(Date, 2, "0")], ?DATE_STR_DELIMITER),
-			TimeStr = concat_string([integer_to_list(Hour, 2, "0"), integer_to_list(Minute, 2, "0"), integer_to_list(Second, 2, "0")], ?TIME_STR_DELIMITER),
-			DateTimeStr = concat_string([DateStr, TimeStr], ?DATE_AND_TIME_STR_DELIMITER),
-			{ok, DateTimeStr};
+%% 			DateStr = concat_string([integer_to_list(Year, 4, "0"), integer_to_list(Month, 2, "0"), integer_to_list(Date, 2, "0")], ?DATE_STR_DELIMITER),
+%% 			TimeStr = concat_string([integer_to_list(Hour, 2, "0"), integer_to_list(Minute, 2, "0"), integer_to_list(Second, 2, "0")], ?TIME_STR_DELIMITER),
+%% 			DateTimeStr = concat_string([DateStr, TimeStr], ?DATE_AND_TIME_STR_DELIMITER),
+%% 			{ok, DateTimeStr};
+			case do_date_get_in_str({Year,Month,Date}) of
+				{ok, DateStr} ->
+					case do_time_get_in_str({Hour,Minute,Second}) of
+						{ok, TimeStr} ->
+							DateTimeStr = concat_string([DateStr, TimeStr], ?DATE_AND_TIME_STR_DELIMITER),
+							{ok, DateTimeStr};
+						{error, ER} ->
+							{error, ER}
+					end;
+				{error, ER} ->
+					{error, ER}
+			end;
 		_ ->
 			{error, {"Invalid DateAndTime stamp", DateAndTime}}
+	end.
+
+%% ====================================================================
+%% @doc
+%% Convert date to string
+%% @end
+-spec do_date_get_in_str(date() | {ok, date()}) -> {ok, list()} | {error, term()}.
+%% ====================================================================
+do_date_get_in_str({ok, Date}) ->
+	do_date_get_in_str(Date);
+do_date_get_in_str(Date) ->
+	case Date of
+		{Year, Month, Day} ->
+			DateStr = concat_string([integer_to_list(Year, 4, "0"), integer_to_list(Month, 2, "0"), integer_to_list(Day, 2, "0")], ?DATE_STR_DELIMITER),
+			{ok, DateStr};
+		_->	{error, {"Invalid Date", Date}}
+	end.
+
+%% ====================================================================
+%% @doc
+%% Convert time to string
+%% @end
+-spec do_time_get_in_str(time() | {ok, time()}) -> {ok, list()} | {error, term()}.
+%% ====================================================================
+do_time_get_in_str({ok, Time}) ->
+	do_time_get_in_str(Time);
+do_time_get_in_str(Time) ->
+	case Time of
+		{{_AmPm, Hour},Minute,Second} ->
+			%% 12H mode
+			TimeStr = concat_string([integer_to_list(Hour, 2, "0"), integer_to_list(Minute, 2, "0"), integer_to_list(Second, 2, "0")], ?TIME_STR_DELIMITER),
+			{ok, TimeStr};
+		
+		{Hour,Minute,Second} ->
+			%% 24H mode
+			TimeStr = concat_string([integer_to_list(Hour, 2, "0"), integer_to_list(Minute, 2, "0"), integer_to_list(Second, 2, "0")], ?TIME_STR_DELIMITER),
+			{ok, TimeStr};
+		_->	{error, {"Invalid Time", Time}}
 	end.
 	
 %% ====================================================================
