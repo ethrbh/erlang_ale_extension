@@ -36,6 +36,12 @@
 %% ====================================================================
 
 %% ====================================================================
+%% Week day name/integer id conversation
+%% ====================================================================
+-export([get_week_day_name/1,
+		 get_week_day_id/1]).
+
+%% ====================================================================
 %% Control register setting
 %% ====================================================================
 -export([ctrl_bit_out_set/1,
@@ -216,6 +222,29 @@ stop() ->
 		_->	%% Process is not running.
 			ok
 	end. 
+
+%% ====================================================================
+%% Get the name of the week day by its week day integer id
+-spec get_week_day_name(wday()) -> {ok, atom()} | {error, term()}.
+%% ====================================================================
+get_week_day_name(WDay) when WDay >= ?RTC_WDAY_MIN, WDay =< ?RTC_WDAY_MAX ->
+	{ok, lists:nth(WDay, ?RTC_DAY_NAME_LIST)};
+get_week_day_name(_WDay) ->
+	{error, "Invalid wday number"}.
+	
+%% ====================================================================
+%% Get the integer number of the week day by its name
+-spec get_week_day_id(atom()) -> {ok, wday()} | {error, term()}.
+%% ====================================================================
+get_week_day_id(WDayName) ->
+	case lists:member(WDayName, ?RTC_DAY_NAME_LIST) of
+		true ->
+			L = lists:zip(lists:seq(?RTC_WDAY_MIN, ?RTC_WDAY_MAX), ?RTC_DAY_NAME_LIST),
+			{value, {WDay, WDayName}} = lists:keysearch(WDayName, 2, L),
+			{ok, WDay};
+		
+		_->	{error, "Invalid wday name"}
+	end.
 
 %% ====================================================================
 %% @doc

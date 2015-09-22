@@ -528,6 +528,10 @@
 -type bitfield_mask()	::	0..255.	%% The end bitfield_value is not really 255, but what is supported by the OS and CPU.
 -type register_rec()	::	tuple().%% The tuple version of any regoster record. eq: #rtcControlReg{}
 
+-define(RTC_WDAY_MIN,	1).
+-define(RTC_WDAY_MAX,	7).
+-define(RTC_DAY_NAME_LIST, ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']).
+
 -type hour_am()			::	?RTC_HOUR_BIT_12H_AMPM_IND_AM.
 -type hour_pm()			::	?RTC_HOUR_BIT_12H_AMPM_IND_PM.
 -type hour_ampm_ind()	::	hour_am() | hour_pm().
@@ -536,7 +540,7 @@
 -type hour()			::	0..23.
 -type hour12()			::	0..12.
 -type day()				::	1..31.
--type wday()			::	1..7.
+-type wday()			::	?RTC_WDAY_MIN..?RTC_WDAY_MAX.
 -type month()			::	1..12.
 -type year()			::	integer().
 -type time_12h()		::	{{hour_ampm_ind(), hour12()}, minute(), second()}.
