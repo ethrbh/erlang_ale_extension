@@ -72,6 +72,7 @@
 		 alarm_interrupt_is_enabled/1,
 		 alarm_interrupt_flag_clear/1, 
 		 alarm_interrupt_flag_check/1,
+		 alarm_interrupt_flag_check/0,
 		 alarm_configure/5,
 		 alarm_date_and_time_get/1]).
 
@@ -139,6 +140,7 @@
 		 do_alarm_interrupt_is_enabled/1,
 		 do_alarm_interrupt_flag_clear/1,
 		 do_alarm_interrupt_flag_check/1,
+		 do_alarm_interrupt_flag_check/0,
 		 do_alarm_interrupt_out_pol_set/2,
 		 do_alarm_configure/5,
 		 do_alarm_date_and_time_get/1,
@@ -409,6 +411,15 @@ alarm_interrupt_flag_clear(AlarmId) ->
 %% ====================================================================
 alarm_interrupt_flag_check(AlarmId) ->
 	do_gen_server_call({execute_mfa, {?MODULE, do_alarm_interrupt_flag_check,[AlarmId]}}).
+
+%% ====================================================================
+%% @doc
+%% Check interrupt flag status for all AlarmModules
+%% @end
+-spec alarm_interrupt_flag_check() -> {ok, list({rtc_alarm_id(), rtc_alarm_interrupt_set() | rtc_alarm_interrupt_clear()})} | {error, term()}.
+%% ====================================================================
+alarm_interrupt_flag_check() ->
+	do_gen_server_call({execute_mfa, {?MODULE, do_alarm_interrupt_flag_check,[]}}).
 
 %% ====================================================================
 %% @doc
@@ -1370,8 +1381,15 @@ do_alarm_interrupt_disable(AlarmId) when (AlarmId == ?RTC_ALARM_0_ID) or (AlarmI
 		{ok, RegisterValue} ->
 			case bitfield_set(RegisterValue, #rtcControlReg{}, #rtcControlReg.address, AlarmIdIdx, ?RTC_CTRL_BIT_ALM_Ax_DIS) of
 				{ok,_} ->
-					?DO_INFO("Alarm interrupt has been disabled", [{alarmId, AlarmId}]),
-					ok;
+					%% Clear the IF bit too
+					case do_alarm_interrupt_flag_clear(AlarmId) of
+						ok ->
+							?DO_INFO("Alarm interrupt has been disabled", [{alarmId, AlarmId}]),
+							ok;
+						ER ->
+							?DO_ERR("Failed to clear alarm interrupt flag once the alarm was disabled", [{alarmId, AlarmId},{reason, ER}]),
+							ER
+					end;
 				ER->
 					?DO_ERR("Failed to disable alarm interrupt", [{alarmId, AlarmId},{reason, ER}]),
 					ER
@@ -1453,6 +1471,18 @@ do_alarm_interrupt_flag_check(AlarmId) when (AlarmId == ?RTC_ALARM_0_ID) or (Ala
 	end;
 do_alarm_interrupt_flag_check(AlarmId) ->
 	{error, {invalid_alarm_id, AlarmId}}.
+
+%% ====================================================================
+%% @doc
+%% Check interrupt flag bit.
+%% @end
+-spec do_alarm_interrupt_flag_check() -> {ok, list({rtc_alarm_id(), rtc_alarm_interrupt_set() | rtc_alarm_interrupt_clear()})} | {error, term()}.
+%% ====================================================================
+do_alarm_interrupt_flag_check() ->
+	Result = [begin
+				  do_alarm_interrupt_flag_check(AlarmId)
+			  end || AlarmId <- [?RTC_ALARM_0_ID, ?RTC_ALARM_1_ID]],
+	{ok, Result}.
 
 %% ====================================================================
 %% @doc
