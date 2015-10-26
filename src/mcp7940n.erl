@@ -1335,29 +1335,41 @@ do_alarm_interrupt_enable_disable(AlarmId, _AlarmInterruptEnableStatus) ->
 -spec do_alarm_interrupt_enable(rtc_alarm_id()) -> ok | {error, term()}.
 %% ====================================================================
 do_alarm_interrupt_enable(AlarmId) when (AlarmId == ?RTC_ALARM_0_ID) or (AlarmId == ?RTC_ALARM_1_ID)->
-	AlarmIdIdx = case AlarmId of
-					 ?RTC_ALARM_0_ID ->
-						 #rtcControlReg.bit_almA0;
-					 ?RTC_ALARM_1_ID ->
-						 #rtcControlReg.bit_almA1
-				 end,
-	case AlarmIdIdx of
-		{error,ER} ->
-			{error,ER};
-		_->
-			case read(erlang:element(#rtcControlReg.address, #rtcControlReg{})) of
-				{ok, RegisterValue} ->
-					case bitfield_set(RegisterValue, #rtcControlReg{}, #rtcControlReg.address, AlarmIdIdx, ?RTC_CTRL_BIT_ALM_Ax_EN) of
-						{ok,_} ->
-							?DO_INFO("Alarm interrupt has been enabled", [{alarmId, AlarmId}]),
-							ok;
+	DoEnableAlarm = case do_alarm_interrupt_is_enabled(AlarmId) of
+						{ok, ?RTC_CTRL_BIT_ALM_Ax_EN} ->
+							alreadyEnabled;
+						_->
+							goAhead
+					end,
+	
+	case DoEnableAlarm of
+		alreadyEnabled ->
+			ok;
+		goAhead ->
+			AlarmIdIdx = case AlarmId of
+							 ?RTC_ALARM_0_ID ->
+								 #rtcControlReg.bit_almA0;
+							 ?RTC_ALARM_1_ID ->
+								 #rtcControlReg.bit_almA1
+						 end,
+			case AlarmIdIdx of
+				{error,ER} ->
+					{error,ER};
+				_->
+					case read(erlang:element(#rtcControlReg.address, #rtcControlReg{})) of
+						{ok, RegisterValue} ->
+							case bitfield_set(RegisterValue, #rtcControlReg{}, #rtcControlReg.address, AlarmIdIdx, ?RTC_CTRL_BIT_ALM_Ax_EN) of
+								{ok,_} ->
+									?DO_INFO("Alarm interrupt has been enabled", [{alarmId, AlarmId}]),
+									ok;
+								ER->
+									?DO_ERR("Failed to enable alarm interrupt", [{alarmId, AlarmId},{reason, ER}]),
+									ER
+							end;
 						ER->
-							?DO_ERR("Failed to enable alarm interrupt", [{alarmId, AlarmId},{reason, ER}]),
+							?DO_ERR("Failed to read CONTROL register", [{reason, ER}]),
 							ER
-					end;
-				ER->
-					?DO_ERR("Failed to read CONTROL register", [{reason, ER}]),
-					ER
+					end
 			end
 	end;
 do_alarm_interrupt_enable(AlarmId) ->
@@ -1440,7 +1452,12 @@ do_alarm_interrupt_flag_clear(AlarmId) when (AlarmId == ?RTC_ALARM_0_ID) or (Ala
 													 end,
 	case read(erlang:element(RegisterAddressIdx, RegisterRec)) of
 		{ok, RegisterValue} ->
-			bitfield_set(RegisterValue, RegisterRec, RegisterAddressIdx, BitFieldIdx, ?RTC_ALMxWKDAY_BIT_ALMxIF_CLEAR);
+			case bitfield_set(RegisterValue, RegisterRec, RegisterAddressIdx, BitFieldIdx, ?RTC_ALMxWKDAY_BIT_ALMxIF_CLEAR) of
+				{ok, _} ->
+					ok;
+				{error, ER} ->
+					{error, ER}
+			end;
 		ER->
 			?DO_ERR("Failed to clear Alarm interrupt flag", [{alamId, AlarmId},{reason, ER}]),
 			ER
@@ -1537,7 +1554,10 @@ do_alarm_configure(AlarmId, DateAndTime, Mask, InterruptEnStatus, InterruptOutPo
 									  {?MODULE, AlarmInterruptStatusSetFunc, [AlarmId]}], ok),
 	case Result of
 		ok ->
-			?DO_INFO("Alarm interrupt has been configured", [{alarmId, AlarmId}]);
+			?DO_INFO("Alarm interrupt has been configured", [{alarmId, AlarmId},
+															 {alarmDate, DateAndTime},
+															 {alarmMask, Mask},
+															 {alarmPolarity, InterruptOutPol}]);
 		ER->	
 			?DO_ERR("Failed to configure Alarm", [{alamId, AlarmId},{reason, ER}])
 	end,
