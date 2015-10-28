@@ -374,7 +374,7 @@ gpio_io_logical_level_setup(CommType, HwAddr, Port, Pin, LogicalLevel) ->
 %% Output:
 %%	 {ok, list(mcp23x17_io_logical_level())} | {error, Reason}
 %% @end
--spec gpio_io_logical_level_get(mcp23x17_comm_type(), hw_addr(), mcp23x17_port()) -> {ok, mcp23x17_io_logical_level()} | {error, term()}.
+-spec gpio_io_logical_level_get(mcp23x17_comm_type(), hw_addr(), mcp23x17_port()) -> {ok, list(mcp23x17_io_logical_level())} | {error, term()}.
 %% ====================================================================
 gpio_io_logical_level_get(CommType, HwAddr, Port) ->
 	%% Start server if not yet started.
@@ -393,7 +393,7 @@ gpio_io_logical_level_get(CommType, HwAddr, Port) ->
 %% Output:
 %%	 {ok, mcp23x17_io_logical_level()} | {error, Reason}
 %% @end
--spec gpio_io_logical_level_get(mcp23x17_comm_type(), hw_addr(), mcp23x17_port(), mcp23x17_pin()) -> {ok, mcp23x17_io_logical_level()} | {error, term()}.
+-spec gpio_io_logical_level_get(mcp23x17_comm_type(), hw_addr(), mcp23x17_port(), mcp23x17_pin() | list(mcp23x17_pin())) -> {ok, list(mcp23x17_io_logical_level())} | {error, term()}.
 %% ====================================================================
 gpio_io_logical_level_get(CommType, HwAddr, Port, Pin) ->
 	%% Start server if not yet started.
@@ -586,7 +586,7 @@ handle_call({gpio_io_logical_level_setup, CommType, HwAddr, Port, Pin, LogicalLe
 	{reply, Reply, State};
 
 handle_call({gpio_io_logical_level_get, CommType, HwAddr, Port}, _From, State) ->
-	Reply = do_gpio_io_logical_level_get(CommType, HwAddr, Port),
+	Reply = do_gpio_io_logical_level_get(CommType, HwAddr, Port, lists:seq(?MCP23X17_PIN0, ?MCP23X17_PIN7)),
 	{reply, Reply, State};
 
 handle_call({gpio_io_logical_level_get, CommType, HwAddr, Port, Pin}, _From, State) ->
@@ -1212,12 +1212,15 @@ do_setup_io_logical_level_loop(LogicalLevel, OLATRegValue, [Pin | T]) ->
 %%	 CommType	: type of serial communication. It can be MCP_COMM_TYPE_SPI | MCP_COMM_TYPE_I2C
 %%	 HwAddr		: HW address of MCP chip
 %%	 Port		: possible value can be MCP23X17_PORT_A | MCP23X17_PORT_B
+%%	 Pin		: the Pin id of Port
 %% Output:
 %%	 {ok, mcp23x17_io_logical_level()} | {error, Reason}
 %% @end
--spec do_gpio_io_logical_level_get(mcp23x17_comm_type(), hw_addr(), mcp23x17_port()) -> {ok, list(mcp23x17_io_logical_level())} | {error, term()}.
+-spec do_gpio_io_logical_level_get(mcp23x17_comm_type(), hw_addr(), mcp23x17_port(), mcp23x17_pin() | list(mcp23x17_pin())) -> {ok, list(mcp23x17_io_logical_level())} | {error, term()}.
 %% ====================================================================
-do_gpio_io_logical_level_get(CommType, HwAddr, Port) ->
+do_gpio_io_logical_level_get(CommType, HwAddr, Port, Pin) when is_integer(Pin)->
+	do_gpio_io_logical_level_get(CommType, HwAddr, Port, [Pin]);
+do_gpio_io_logical_level_get(CommType, HwAddr, Port, PinList) when is_list(PinList)->
 	OLATRegAddr = case Port of
 					  ?MCP23X17_PORT_A ->
 						  ?GPIOA_ADDR;
@@ -1230,35 +1233,7 @@ do_gpio_io_logical_level_get(CommType, HwAddr, Port) ->
 		{ok, OLATRegValue} ->
 			{ok, [begin
 					  bit_operations:bit_test(OLATRegValue, Pin)
-				  end || Pin <- lists:reverse(lists:seq(?MCP23X17_PIN0, ?MCP23X17_PIN7))]};
-		ER->ER
-	end.
-
-%% ====================================================================
-%% @doc
-%% Get IO logical level of Port/Pin.
-%% Input:
-%%	 CommType	: type of serial communication. It can be MCP_COMM_TYPE_SPI | MCP_COMM_TYPE_I2C
-%%	 HwAddr		: HW address of MCP chip
-%%	 Port		: possible value can be MCP23X17_PORT_A | MCP23X17_PORT_B
-%%	 Pin		: the Pin id of Port
-%% Output:
-%%	 {ok, mcp23x17_io_logical_level()} | {error, Reason}
-%% @end
--spec do_gpio_io_logical_level_get(mcp23x17_comm_type(), hw_addr(), mcp23x17_port(), mcp23x17_pin()) -> {ok, mcp23x17_io_logical_level()} | {error, term()}.
-%% ====================================================================
-do_gpio_io_logical_level_get(CommType, HwAddr, Port, Pin) when is_integer(Pin)->
-	OLATRegAddr = case Port of
-					  ?MCP23X17_PORT_A ->
-						  ?GPIOA_ADDR;
-					  ?MCP23X17_PORT_B ->
-						  ?GPIOB_ADDR
-	end,
-	
-	%% Get port/pin
-	case read(CommType, HwAddr, OLATRegAddr) of
-		{ok, OLATRegValue} ->
-			{ok, bit_operations:bit_test(OLATRegValue, Pin)};
+				  end || Pin <- lists:reverse(PinList)]};
 		ER->ER
 	end.
 

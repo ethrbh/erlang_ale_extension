@@ -42,22 +42,22 @@
 %% MCP23017 - I2C
 %% MCP23S17 - SPI
 %% ====================================================================
--type mcp23x17_comm_type_spi0()	::	spi0.
--type mcp23x17_comm_type_i2c1()	::	i2c1.
+-define(MCP23X17_COMM_TYPE_SPI0,  spi0).
+-define(MCP23X17_COMM_TYPE_I2C1,  i2c1).
+-type mcp23x17_comm_type_spi0()	::	?MCP23X17_COMM_TYPE_SPI0.
+-type mcp23x17_comm_type_i2c1()	::	?MCP23X17_COMM_TYPE_I2C1.
 -type select_spi_dev_mfa()		::	mfa().
 -type unselect_spi_dev_mfa()	::	mfa().
 -type mcp23x17_comm_type()		::	mcp23x17_comm_type_spi0() | {mcp23x17_comm_type_spi0(), select_spi_dev_mfa(), unselect_spi_dev_mfa()} | mcp23x17_comm_type_i2c1().
--define(MCP23X17_COMM_TYPE_SPI0,  spi0).
--define(MCP23X17_COMM_TYPE_I2C1,  i2c1).
 
 %% ====================================================================
 %% Possible port sides
 %% ====================================================================
--type mcp23x17_port_a()	::	'A'.
--type mcp23x17_port_b()	::	'B'.
--type mcp23x17_port()	::	mcp23x17_port_a() | mcp23x17_port_b().
 -define(MCP23X17_PORT_A, 'A').
 -define(MCP23X17_PORT_B, 'B').
+-type mcp23x17_port_a()	::	?MCP23X17_PORT_A.
+-type mcp23x17_port_b()	::	?MCP23X17_PORT_B.
+-type mcp23x17_port()	::	mcp23x17_port_a() | mcp23x17_port_b().
 
 %% ====================================================================
 %% Pins of port
@@ -76,29 +76,29 @@
 %% ====================================================================
 %% Interrupt polarity
 %% ====================================================================
--type mcp23x17_int_pol_high()	::	1.
--type mcp23x17_int_pol_low()	::	0.
--type mcp23x17_int_pol()		::	mcp23x17_int_pol_high() | mcp23x17_int_pol_low().
 -define(MCP23X17_INT_POL_ACTIVE_HIGH,  1).
 -define(MCP23X17_INT_POL_ACTIVE_LOW,   0).
+-type mcp23x17_int_pol_high()	::	?MCP23X17_INT_POL_ACTIVE_HIGH.
+-type mcp23x17_int_pol_low()	::	?MCP23X17_INT_POL_ACTIVE_LOW.
+-type mcp23x17_int_pol()		::	mcp23x17_int_pol_high() | mcp23x17_int_pol_low().
 
 %% ====================================================================
 %% Interrupt mirroring
 %% ====================================================================
--type mcp23x17_int_pin_mirrored()		::	1.
--type mcp23x17_int_pin_notmirrored()	::	0.
--type mcp23x17_int_pin_mirror()			::	mcp23x17_int_pin_mirrored() | mcp23x17_int_pin_notmirrored().
 -define(MCP23X17_INT_PINS_MIRRORED,		1).
 -define(MCP23X17_INT_PINS_NOT_MIRRORED,	0).
+-type mcp23x17_int_pin_mirrored()		::	?MCP23X17_INT_PINS_MIRRORED.
+-type mcp23x17_int_pin_notmirrored()	::	?MCP23X17_INT_PINS_NOT_MIRRORED.
+-type mcp23x17_int_pin_mirror()			::	mcp23x17_int_pin_mirrored() | mcp23x17_int_pin_notmirrored().
 
 %% ====================================================================
 %% I/O direction
 %% ====================================================================
--type mcp23x17_io_input()	::	1.
--type mcp23x17_io_output()	::	0.
--type mcp23x17_io_dir()		::	mcp23x17_io_input() | mcp23x17_io_output().
 -define(MCP23X17_IO_INPUT,	1).
 -define(MCP23X17_IO_OUTPUT,	0).
+-type mcp23x17_io_input()	::	?MCP23X17_IO_INPUT.
+-type mcp23x17_io_output()	::	?MCP23X17_IO_OUTPUT.
+-type mcp23x17_io_dir()		::	mcp23x17_io_input() | mcp23x17_io_output().
 
 %% ====================================================================
 %% INPUT POLARITY
@@ -109,20 +109,20 @@
 %% 1 = GPIO register bit will reflect the opposite logic state of the input pin.
 %% 0 = GPIO register bit will reflect the same logic state of the input pin.
 %% ====================================================================
--type mcp23x17_in_pol_opposite_of_pin_logic()	::	1.
--type mcp23x17_in_pol_same_of_pin_logic()		::	0.
--type mcp23x17_in_pol()							::	mcp23x17_in_pol_opposite_of_pin_logic() | mcp23x17_in_pol_same_of_pin_logic().
 -define(MCP23X17_INPUT_POL_OPPOSITE_OF_PIN_LOGIC,    1).
 -define(MCP23X17_INPUT_POL_SAME_OF_PIN_LOGIC,        0).
+-type mcp23x17_in_pol_opposite_of_pin_logic()	::	?MCP23X17_INPUT_POL_OPPOSITE_OF_PIN_LOGIC.
+-type mcp23x17_in_pol_same_of_pin_logic()		::	?MCP23X17_INPUT_POL_SAME_OF_PIN_LOGIC.
+-type mcp23x17_in_pol()							::	mcp23x17_in_pol_opposite_of_pin_logic() | mcp23x17_in_pol_same_of_pin_logic().
 
 %% ====================================================================
 %% INTERRUPT-ON-CHANGE
 %% ====================================================================
--type mcp23x17_int_on_changed_en()	::	1.
--type mcp23x17_int_on_changed_dis()	::	0.
--type mcp23x17_int_on_changed()		::	mcp23x17_int_on_changed_en() | mcp23x17_int_on_changed_dis().
 -define(MCP23X17_INTERRUPT_ON_CHANGE_ENABLED,  1).
 -define(MCP23X17_INTERRUPT_ON_CHANGE_DISABLED, 0).
+-type mcp23x17_int_on_changed_en()	::	?MCP23X17_INTERRUPT_ON_CHANGE_ENABLED.
+-type mcp23x17_int_on_changed_dis()	::	?MCP23X17_INTERRUPT_ON_CHANGE_DISABLED.
+-type mcp23x17_int_on_changed()		::	mcp23x17_int_on_changed_en() | mcp23x17_int_on_changed_dis().
 
 %% ====================================================================
 %% DEFAULT COMPARE REGISTER FOR INTERRUPT-ON-CHANGE
@@ -132,11 +132,11 @@
 %% opposite value on the associated pin will cause an
 %% interrupt to occur.
 %% ====================================================================
--type mcp23x17_def_comp_val_high()	::	1.
--type mcp23x17_def_comp_val_low()	::	0.
--type mcp23x17_def_comp_val()		::	mcp23x17_def_comp_val_high() | mcp23x17_def_comp_val_low().
 -define(MCP23X17_DEF_COMP_VALUE_HIGH,	1).
 -define(MCP23X17_DEF_COMP_VALUE_LOW,	0).
+-type mcp23x17_def_comp_val_high()	::	?MCP23X17_DEF_COMP_VALUE_HIGH.
+-type mcp23x17_def_comp_val_low()	::	?MCP23X17_DEF_COMP_VALUE_LOW.
+-type mcp23x17_def_comp_val()		::	mcp23x17_def_comp_val_high() | mcp23x17_def_comp_val_low().
 
 %% ====================================================================
 %% INTERRUPT CONTROL REGISTER
@@ -147,11 +147,11 @@
 %% bit value is clear, the corresponding I/O pin is compared
 %% against the previous value.
 %% ====================================================================
--type mcp23x17_ioc_comp_with_def_comp_val()	::	1.
--type mcp23x17_ioc_comp_with_prev_pin_val()	::	0.
--type mcp23x17_ioc_comp_val()				::	mcp23x17_ioc_comp_with_def_comp_val() | mcp23x17_ioc_comp_with_prev_pin_val().
 -define(MCP23X17_IOC_COMP_WITH_DEF_COMP_VALUE,   1).
 -define(MCP23X17_IOC_COMP_WITH_PREV_PIN_VALUE,   0).
+-type mcp23x17_ioc_comp_with_def_comp_val()	::	?MCP23X17_IOC_COMP_WITH_DEF_COMP_VALUE.
+-type mcp23x17_ioc_comp_with_prev_pin_val()	::	?MCP23X17_IOC_COMP_WITH_PREV_PIN_VALUE.
+-type mcp23x17_ioc_comp_val()				::	mcp23x17_ioc_comp_with_def_comp_val() | mcp23x17_ioc_comp_with_prev_pin_val().
 
 %% ====================================================================
 %% PULL-UP RESISTOR
@@ -160,20 +160,20 @@
 %% configured as an input, the corresponding port pin is
 %% internally pulled up with a 100 k? resistor.
 %% ====================================================================
--type mcp23x17_pull_up_res_en()	::	1.
--type mcp23x17_pull_up_res_dis()::	0.
--type mcp23x17_pull_up_res()	::	mcp23x17_pull_up_res_en() | mcp23x17_pull_up_res_dis().
 -define(MCP23X17_PULL_UP_RES_ENABLED,  1).
 -define(MCP23X17_PULL_UP_RES_DISABLED, 0).
+-type mcp23x17_pull_up_res_en()	::	?MCP23X17_PULL_UP_RES_ENABLED.
+-type mcp23x17_pull_up_res_dis()::	?MCP23X17_PULL_UP_RES_DISABLED.
+-type mcp23x17_pull_up_res()	::	mcp23x17_pull_up_res_en() | mcp23x17_pull_up_res_dis().
 
 %% ====================================================================
 %% Logical level of Pin. It can be LOW | HIGH
 %% ====================================================================
--type mcp23x17_io_logical_low()		::	0.
--type mcp23x17_io_logical_high()	::	1.
--type mcp23x17_io_logical_level()	::	mcp23x17_io_logical_low() | mcp23x17_io_logical_high().
 -define(MCP23X17_IO_LOGICAL_LOW, 0).
 -define(MCP23X17_IO_LOGICAL_HIGH, 1).
+-type mcp23x17_io_logical_low()		::	?MCP23X17_IO_LOGICAL_LOW.
+-type mcp23x17_io_logical_high()	::	?MCP23X17_IO_LOGICAL_HIGH.
+-type mcp23x17_io_logical_level()	::	mcp23x17_io_logical_low() | mcp23x17_io_logical_high().
 
 %% ====================================================================
 %% Header file for MCP23017/MCP23S17 I2C IO Expander
