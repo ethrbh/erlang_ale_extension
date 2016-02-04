@@ -219,6 +219,14 @@ gpio_set_int(Gpio, IntCondition, Destination) when is_integer(Gpio) ->
 		{ok, _SupPid} ->
 			ChildId = {gpio, Gpio},
 			
+			?DO_INFO("Erlang ALE supervisor has been started when set interrupt", 
+					 [
+					  {sup_pid, _SupPid},
+					  {gpio, Gpio},
+					  {intCondition, IntCondition},
+					  {destination, Destination}
+					  ]),
+			
 			%% Check that GPIO is not used for opposite direction, such as OUTPUT for write mode. Reject if so.
 			case get_child_spec(ChildId) of
 				{ok, {ChildId, AleHandlerPidT, _Worker, _Modules}} ->
@@ -828,12 +836,9 @@ do_get_child_spec(WhatToFind, [_|T]) ->
 do_start_erlang_ale_sup() ->
 	case erlang_ale_sup:start_link() of
 		{ok, Pid} ->
-			?DO_INFO("Erlang ALE supervisor has been started", [{sup_pid, Pid}]),
 			{ok, Pid};
 		{error,{already_started,Pid}} ->
-			%%?DO_INFO("Erlang ALE supervisor already started", [{sup_pid, Pid}]),
 			{ok, Pid};
 		{error, R} ->
-			?DO_ERR("Error when start Erlang ALE supervisor", [{reason, R}]),
 			{error, R}
 	end.
