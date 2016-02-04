@@ -807,6 +807,17 @@ do_start_driver_process_4_int(InitialMFA, DrvPid, _Result, Attempts) ->
    	%% Register interrupt process
 	{_Module, gpio_set_int, [Gpio, IntCondition, Destination]} = InitialMFA,
 	
+	?DO_INFO("Try register gpio interrupt",
+			 [
+			 {drvModule, ?DRV_GPIO_MODULE},
+			 {drvFunc, register_int},
+			 {gpio, Gpio},
+			 {intCond, IntCondition},
+			 {destination, Destination},
+			 {drvPid, DrvPid},
+			 {tryAttempts, Attempts}
+			  ]),
+	
 	case catch erlang:apply(?DRV_GPIO_MODULE, register_int, [DrvPid, Destination]) of
 		{'EXIT',R} ->
 			?DO_ERR("Error occurred when register process for GPIO interrupt",
@@ -825,6 +836,16 @@ do_start_driver_process_4_int(InitialMFA, DrvPid, _Result, Attempts) ->
 			do_start_driver_process_4_int(InitialMFA, DrvPid, {error, R}, Attempts-1);
 		
 		ok ->
+			?DO_INFO("Try register gpio interrupt - DONE",
+					 [
+					 {drvModule, ?DRV_GPIO_MODULE},
+					 {drvFunc, register_int},
+					 {gpio, Gpio},
+					 {intCond, IntCondition},
+					 {destination, Destination},
+					 {drvPid, DrvPid},
+					 {tryAttempts, Attempts}
+					  ]),
 			do_start_driver_process_4_int(InitialMFA, DrvPid, {ok, DrvPid}, 0);
 		
 		{error, R} ->
