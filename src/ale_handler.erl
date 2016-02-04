@@ -692,7 +692,14 @@ start_driver_process(InitialMFA, {DrvModule, DrvStartFunction, Arg}) ->
 				  case DrvModule of
 					  ?DRV_GPIO_MODULE ->
 						  %% Handle special case for interrupt handling on Gpio.
-						  start_driver_process_4_int(InitialMFA, DrvPid);
+						  case InitialMFA of
+							  {_Module, gpio_set_int, [_Gpio, _IntCondition, _Destination]} ->
+								  %% Register interrupt process
+								  start_driver_process_4_int(InitialMFA, DrvPid);
+							  
+							  _-> %% Normal GPIO read|write operation
+								  {ok, DrvPid}
+						  end;
 					  
 					  ?DRV_I2C_MODULE ->
 						  {ok, DrvPid};
