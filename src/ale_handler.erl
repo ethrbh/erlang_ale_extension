@@ -831,7 +831,7 @@ do_start_erlang_ale_sup() ->
 			?DO_INFO("Erlang ALE supervisor has been started", [{sup_pid, Pid}]),
 			{ok, Pid};
 		{error,{already_started,Pid}} ->
-			?DO_INFO("Erlang ALE supervisor already started", [{sup_pid, Pid}]),
+			%%?DO_INFO("Erlang ALE supervisor already started", [{sup_pid, Pid}]),
 			{ok, Pid};
 		{error, R} ->
 			?DO_ERR("Error when start Erlang ALE supervisor", [{reason, R}]),
