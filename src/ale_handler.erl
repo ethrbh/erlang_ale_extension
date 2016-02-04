@@ -25,6 +25,8 @@
 -define(SUPERVISOR, erlang_ale_sup).
 -define(SERVER, ?MODULE).
 -define(TIMEOUT_FOR_OPERATION, 10000).
+-define(MAX_TRY_ATTEMPTS_FOR_REGISTER_GPIO_INT_PROCESS, 3).
+-define(DELAY_BETWEEN_ATTEMPTS_FOR_REGISTER_GPIO_INT_PROCESS, 1000).
 
 -type child_id()	::	term(). %% Not a pid()
 -type mfargs()		::	{M :: module(), F :: atom(), A :: [term()] | undefined}.
@@ -690,22 +692,7 @@ start_driver_process(InitialMFA, {DrvModule, DrvStartFunction, Arg}) ->
 				  case DrvModule of
 					  ?DRV_GPIO_MODULE ->
 						  %% Handle special case for interrupt handling on Gpio.
-						  SpecialCaseRes = case InitialMFA of
-											   {_Module, gpio_set_int, [_Gpio, _IntCondition, Destination]} ->
-												   %% Register interrupt process
-												   case erlang:apply(?DRV_GPIO_MODULE, register_int, [DrvPid, Destination]) of
-													   ok ->
-														   ok;
-													   {error, R} ->
-														   {error, R}
-												   end;
-											   _-> ok
-										   end,
-						  case SpecialCaseRes of
-							  ok ->
-								  {ok, DrvPid};
-							  ER->ER
-						  end;
+						  start_driver_process_4_int(InitialMFA, DrvPid);
 					  
 					  ?DRV_I2C_MODULE ->
 						  {ok, DrvPid};
@@ -803,6 +790,58 @@ stop_driver_process(State) ->
 					 {initialMFA, State#state.initialMFA},
 					 {drvInitMFA, State#state.drvInitMFA}]),
 			ok
+	end.
+
+%% ====================================================================
+%% @doc
+%% Special case for regiister process for GPIO interrupt
+%% @end
+-spec start_driver_process_4_int(InitialMFA :: mfa(), DrvPid :: pid()) -> {ok, pid()} | {error, term()}.
+%% ====================================================================
+start_driver_process_4_int(InitialMFA, DrvPid) ->
+	do_start_driver_process_4_int(InitialMFA, DrvPid, {error, "No more attempts to register gpio interrupt."}, ?MAX_TRY_ATTEMPTS_FOR_REGISTER_GPIO_INT_PROCESS).
+
+do_start_driver_process_4_int(_InitialMFA, _DrvPid, Result, 0) ->
+	Result;
+do_start_driver_process_4_int(InitialMFA, DrvPid, _Result, Attempts) ->
+   	%% Register interrupt process
+	{_Module, gpio_set_int, [Gpio, IntCondition, Destination]} = InitialMFA,
+	
+	case catch erlang:apply(?DRV_GPIO_MODULE, register_int, [DrvPid, Destination]) of
+		{'EXIT',R} ->
+			?DO_ERR("Error occurred when register process for GPIO interrupt",
+					[
+					 {drvModule, ?DRV_GPIO_MODULE},
+					 {drvFunc, register_int},
+					 {gpio, Gpio},
+					 {intCond, IntCondition},
+					 {destination, Destination},
+					 {drvPid, DrvPid},
+					 {reason, R},
+					 {remTryAttempts, Attempts-1}
+					 ]),
+			
+			timer:sleep(?DELAY_BETWEEN_ATTEMPTS_FOR_REGISTER_GPIO_INT_PROCESS),
+			do_start_driver_process_4_int(InitialMFA, DrvPid, {error, R}, Attempts-1);
+		
+		ok ->
+			do_start_driver_process_4_int(InitialMFA, DrvPid, {ok, DrvPid}, 0);
+		
+		{error, R} ->
+			?DO_ERR("Error occurred when register process for GPIO interrupt",
+					[
+					 {drvModule, ?DRV_GPIO_MODULE},
+					 {drvFunc, register_int},
+					 {gpio, Gpio},
+					 {intCond, IntCondition},
+					 {destination, Destination},
+					 {drvPid, DrvPid},
+					 {reason, R},
+					 {remTryAttempts, Attempts-1}
+					 ]),
+			
+			timer:sleep(?DELAY_BETWEEN_ATTEMPTS_FOR_REGISTER_GPIO_INT_PROCESS),
+			do_start_driver_process_4_int(InitialMFA, DrvPid, {error, R}, Attempts-1)
 	end.
 
 %% ====================================================================
