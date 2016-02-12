@@ -12,6 +12,7 @@
 %% Includes
 %% ====================================================================
 -include("ale_common.hrl").
+-include("dev_common.hrl").
 
 %% ====================================================================
 %% Defines for converting timestamp to string.
@@ -63,24 +64,6 @@
 
 -define(RTC_VBAT_EN, 1).
 -define(RTC_VBAT_DIS, 0).
-
-%% ====================================================================
-%% Register addresses of RTC
-%% Structure of register:
-%% -record(NAME, {				
-%% 				address = <ADDRESS OF REGISTER>,
-%% 				bit_x = bit_parameter_record}).
-%% where bit_parameter_record
--record(bitParam, {	
-					value,			%% {Min,Max} | [ListOfPossibleValues]
-					mask,			%% mask of the bit in the byte
-					doshiftvalue	%% boolean
-									%% If value is tuple, it must be true. This means the new value of bit must shift 
-									%% according to its mask before set, and after read from the RTC device. This is
-									%% because the {Min,Max} values in the tuple gives the "normal" possible values of the bit
-									%% and this value need to shift according to the mask of the byte. 
-  					}).
-%% ====================================================================
 
 %% ====================================================================
 %% SECOND REGISTER

@@ -22,6 +22,7 @@
 -define(SERVER, ?MODULE).
 -define(TIMEOUT, 1000).
 -define(TIME_TO_WAIT_BEFORE_CHECK_OSCILLATOR_STATUS, 500).
+-define(NUMBER_OF_BYTE_TO_READ, 1).
 
 %% Use below method to get current time stamp in tuple if Erlang/OTP version is
 %% 18.x or higher.
@@ -2842,13 +2843,7 @@ hour_convert_to_24h_format(AMPM, Hour) ->
 %%		{ok,Value} | {error, Reason}
 %% ====================================================================
 read(RegAddr) ->
-	ale_handler:i2c_write(?RTC_COMMUNICATION_DEVICENAME, ?RTC_ADDRESS, erlang:list_to_binary([RegAddr])),
-	timer:sleep(10),
-	case ale_handler:i2c_read(?RTC_COMMUNICATION_DEVICENAME, ?RTC_ADDRESS, 1) of
-		{ok, <<Data>>} ->
-			{ok, Data};
-		ER->ER
-	end.
+	dev_common:i2c_read(?RTC_COMMUNICATION_DEVICENAME, ?RTC_ADDRESS, RegAddr, ?NUMBER_OF_BYTE_TO_READ).
 
 %% ====================================================================
 %% Write a register in RTC device
@@ -2859,7 +2854,7 @@ read(RegAddr) ->
 %%		ok | {error, Reason}
 %% ====================================================================
 write(RegAddr,Value) ->
-	ale_handler:i2c_write(?RTC_COMMUNICATION_DEVICENAME, ?RTC_ADDRESS, erlang:list_to_binary([RegAddr, Value])).
+	dev_common:i2c_write(?RTC_COMMUNICATION_DEVICENAME, ?RTC_ADDRESS, RegAddr, Value).
 
 %% ====================================================================
 %% @doc
