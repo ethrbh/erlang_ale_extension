@@ -10,9 +10,9 @@
 %% ====================================================================
 %% Type definitions
 %% ====================================================================
--type data()			::	0..255.	%% The end bitfield_value is not really 255, but what is supported by the OS and CPU.
--type bitfield_value()	::	0..255.	%% The end bitfield_value is not really 255, but what is supported by the OS and CPU.
--type bitfield_mask()	::	0..255.	%% The end bitfield_value is not really 255, but what is supported by the OS and CPU.
+-type data()			::	0..16#FFFF.	%% The end bitfield_value is not really 255, but what is supported by the OS and CPU.
+-type bitfield_value()	::	0..16#FFFF.	%% The end bitfield_value is not really 255, but what is supported by the OS and CPU.
+-type bitfield_mask()	::	0..16#FFFF.	%% The end bitfield_value is not really 255, but what is supported by the OS and CPU.
 -type bit()				::	0 | 1.
 
 %% ====================================================================
@@ -20,7 +20,7 @@
 %% ====================================================================
 -export([
 		 bit_test/2,
-		 bit_list_get/1,
+		 bit_list_get/1, bit_list_get/3,
 		 bit_set/2, bit_set/3, bit_set/4,
 		 bit_clear/2,
 		 bit_get/2, bit_get/3,
@@ -40,24 +40,36 @@ bit_test(Byte, Bit) when Bit > 0 ->
 	%% B2 - (Val band 4) bsr 2
 	%% B3 - (Val band 8) bsr 3
 	%% ...	
-	BAND_MASK = erlang:round(math:pow(2,Bit)),
+	BAND_MASK = erlang:round(math:pow(2, Bit)),
 	(Byte band BAND_MASK) bsr Bit.
 
 %% ====================================================================
 %% @doc
 %% Give the list of bits of the given byte.
 %% @end
--spec bit_list_get(data()) -> list(bit()).
+-spec bit_list_get(Data :: data()) -> list(bit()).
 %% ====================================================================
-bit_list_get(Byte) ->
+bit_list_get(Data) ->
 	%% Find the number of bits of the given byte.
-	Base = 255,
+	Base = 16#FF,
 	BaseBitLength = 8,
-	N = bit_list_get_loop(Byte, 1, Base),
+	bit_list_get(Data, Base, BaseBitLength).
+
+%% ====================================================================
+%% @doc
+%% Give the list of bits of the given byte.
+%% @end
+-spec bit_list_get(Data :: data(),
+				   Base :: data(),
+				   BaseBitLength :: integer()) -> list(bit()).
+%% ====================================================================
+bit_list_get(Data, Base, BaseBitLength) ->
+	%% Find the number of bits of the given byte.
+	N = bit_list_get_loop(Data, 1, Base),
 
 	%% Compute the bit list.
 	[begin
-		 bit_test(Byte,Bit)
+		 bit_test(Data,Bit)
 	 end || Bit <- lists:reverse((lists:seq(0, ((N*BaseBitLength)-1))))].
 
 bit_list_get_loop(Byte, N, Base) when (Byte > (N*Base)) ->
@@ -85,7 +97,7 @@ bit_set(Byte, Bit) ->
 %% @end
 -spec bit_set(data(), bitfield_value(), bitfield_mask()) -> data().
 %% ====================================================================
-bit_set(Byte,Value,Mask) ->
+bit_set(Byte, Value, Mask) ->
 	%% Clear the bits specified by MASK first.
 	MaskT = bnot(Mask),
 	ByteT = Byte band MaskT,
@@ -101,7 +113,7 @@ bit_set(Byte,Value,Mask) ->
 %% @end
 -spec bit_set(data(), bitfield_value(), bitfield_mask(), doShiftValueBeforeSet) -> data().
 %% ====================================================================
-bit_set(Byte,BitFieldValue,BitFieldMask,doShiftValueBeforeSet) ->
+bit_set(Byte, BitFieldValue, BitFieldMask, doShiftValueBeforeSet) ->
 	%% Get the list of bit of bitfield_mask.
 	BitListOfMask = bit_list_get(BitFieldMask),
 	
@@ -133,7 +145,7 @@ bit_clear(Byte, Bit) when Byte =< 255, Bit =< 7 ->
 %% @end
 -spec bit_get(data(), bitfield_mask()) -> bitfield_value().
 %% ====================================================================
-bit_get(Byte,Mask) ->
+bit_get(Byte, Mask) ->
 	Byte band Mask.
 
 %% ====================================================================
@@ -143,7 +155,7 @@ bit_get(Byte,Mask) ->
 %% @end
 -spec bit_get(data(), bitfield_mask(), doShiftValueAfterGet) -> bitfield_value().
 %% ====================================================================
-bit_get(Byte,BitFieldMask,doShiftValueAfterGet) ->
+bit_get(Byte, BitFieldMask, doShiftValueAfterGet) ->
 	%% Get the bits in the given byte.
 	ValueT = bit_get(Byte, BitFieldMask),
 	
