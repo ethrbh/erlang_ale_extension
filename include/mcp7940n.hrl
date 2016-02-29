@@ -505,12 +505,6 @@
 %% ====================================================================
 %% Type definitions
 %% ====================================================================
--type int_data()		::	0..255.
--type address()			::	integer().
--type bitfield_value()	::	0..255.	%% The end bitfield_value is not really 255, but what is supported by the OS and CPU.
--type bitfield_mask()	::	0..255.	%% The end bitfield_value is not really 255, but what is supported by the OS and CPU.
--type register_rec()	::	tuple().%% The tuple version of any regoster record. eq: #rtcControlReg{}
-
 -define(RTC_WDAY_MIN,	1).
 -define(RTC_WDAY_MAX,	7).
 -define(RTC_DAY_NAME_LIST, ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']).

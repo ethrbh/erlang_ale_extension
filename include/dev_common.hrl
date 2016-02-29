@@ -26,5 +26,14 @@
   					}).
 %% ====================================================================
 
+%% ====================================================================
+%% Type definitions
+%% ====================================================================
+-type int_data()		::	0..255.
+-type address()			::	integer().
+-type bitfield_value()	::	0..255.	%% The end bitfield_value is not really 255, but what is supported by the OS and CPU.
+-type bitfield_mask()	::	0..255.	%% The end bitfield_value is not really 255, but what is supported by the OS and CPU.
+-type register_rec()	::	tuple().%% The tuple version of any regoster record. eq: #rtcControlReg{}
+
 
 -endif.
