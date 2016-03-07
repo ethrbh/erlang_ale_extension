@@ -1,5 +1,5 @@
 {application, erlang_ale_extension, [
-	{description, ""},
+	{description, "Extension for Erlang/ALE. Support more devices to control in Erlang."},
 	{vsn, "0.1.2"},
 	{id, "git"},
 	{modules, []},
