@@ -850,11 +850,16 @@ handle_info({pwr_status_check}, State) ->
 				?RTC_WKDAY_BIT_PWRFAIL_PRIM_PWR_NOT_LOST ->
 					%% Currently the power is not lost.
 					
+					%% Compare the current power status with previous known power status.
 					case State#state.pwrStatus of
 						undefined ->
 							%% Initial case, when RTC driver was started.
 							NewState = State#state{pwrStatus = ?RTC_WKDAY_BIT_PWRFAIL_PRIM_PWR_NOT_LOST,
 												   pwrStatusLastCheckTime = ?GET_NOW},
+							?DO_INFO("RTC's power is initiated, power is OK.", [
+															  {pwrStatus, State#state.pwrStatus, 'OK'},
+															  {pwrStatusLastCheckTime, NewState#state.pwrStatusLastCheckTime}
+															  ]),
 							{noreply, NewState};
 						
 						?RTC_WKDAY_BIT_PWRFAIL_PRIM_PWR_NOT_LOST ->
@@ -863,8 +868,14 @@ handle_info({pwr_status_check}, State) ->
 						
 						?RTC_WKDAY_BIT_PWRFAIL_PRIM_PWR_LOST ->
 							%% This case should not be happened!!!
-							?DO_ERR("Unexpected case happened when handle RTC PWR check.", [{genServerStateRec, State}, {readPwrFailBit, Current_PWRFAIL_bit_status}, {lastKnownPwrStatus, State#state.pwrStatus}]),
-							{noreply, State}
+							%%?DO_ERR("Unexpected case happened when handle RTC PWR check.", [{genServerStateRec, State}, {readPwrFailBit, Current_PWRFAIL_bit_status}, {lastKnownPwrStatus, State#state.pwrStatus}]),
+							NewState = State#state{pwrStatus = ?RTC_WKDAY_BIT_PWRFAIL_PRIM_PWR_NOT_LOST,
+												   pwrStatusLastCheckTime = ?GET_NOW},
+							?DO_INFO("RTC's power is back.", [
+															  {pwrStatus, State#state.pwrStatus, 'OK'},
+															  {pwrStatusLastCheckTime, NewState#state.pwrStatusLastCheckTime}
+															  ]),
+							{noreply, NewState}
 					end;
 				
 				?RTC_WKDAY_BIT_PWRFAIL_PRIM_PWR_LOST ->
