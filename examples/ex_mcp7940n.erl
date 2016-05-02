@@ -23,7 +23,7 @@
 %% Defines
 %% ====================================================================
 -define(SERVER, ?MODULE).
--define(INT_PIN, 17).			%% This GPIO will recevies the interrupt from the RTC.
+-define(INT_PIN, 24).			%% This GPIO_24 will recevies the interrupt from the RTC.
 -define(INT_CONDITION, rising).
 -define(ALARM_MODULE, ?RTC_ALARM_0_ID).
 -define(GENERAL_GENSERVER_TIMEOUT, 10000).
