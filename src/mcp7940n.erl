@@ -31,7 +31,7 @@
 
 %% Use below method to get current time stamp in tuple if Erlang/OTP version is
 %% older than 18.0
--define(GET_NOW, erlang:now()).
+-define(GET_NOW, erlang:timestamp()).
 
 %% ====================================================================
 %% API functions
