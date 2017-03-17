@@ -816,14 +816,18 @@ do_gpio_disable_interrupt(CommType, HwAddr, Port, Pin) ->
 -spec do_interrupt_polarity_setup(mcp23x17_comm_type(), hw_addr(), mcp23x17_int_pol()) -> ok | {error, term()}.
 %% ====================================================================
 do_interrupt_polarity_setup(CommType, HwAddr, IntPol) ->
-	{ok, IOCONRegValue} = read(CommType, HwAddr, ?IOCON_ADDR),
-	NewIOCONRegValue = case IntPol of
-						   ?MCP23X17_INT_POL_ACTIVE_HIGH ->
-							   bit_operations:bit_set(IOCONRegValue, ?IOCON_INTPOL);
-						   ?MCP23X17_INT_POL_ACTIVE_LOW ->
-							   bit_operations:bit_clear(IOCONRegValue, ?IOCON_INTPOL)
-								   end,
-	write(CommType, HwAddr, ?IOCON_ADDR, NewIOCONRegValue).
+	case read(CommType, HwAddr, ?IOCON_ADDR) of
+		{ok, IOCONRegValue} ->
+			NewIOCONRegValue = case IntPol of
+								   ?MCP23X17_INT_POL_ACTIVE_HIGH ->
+									   bit_operations:bit_set(IOCONRegValue, ?IOCON_INTPOL);
+								   ?MCP23X17_INT_POL_ACTIVE_LOW ->
+									   bit_operations:bit_clear(IOCONRegValue, ?IOCON_INTPOL)
+							   end,
+			write(CommType, HwAddr, ?IOCON_ADDR, NewIOCONRegValue);
+		{error, ER} ->
+			{error, ER}
+	end.
 
 %% ====================================================================
 %% @doc
@@ -839,14 +843,18 @@ do_interrupt_polarity_setup(CommType, HwAddr, IntPol) ->
 -spec do_interrupt_pin_mirror_setup(mcp23x17_comm_type(), hw_addr(), mcp23x17_int_pin_mirror()) -> ok | {error, term()}.
 %% ====================================================================
 do_interrupt_pin_mirror_setup(CommType, HwAddr, IntPinMirror) ->
-	{ok, IOCONRegValue} = read(CommType, HwAddr, ?IOCON_ADDR),
-	NewIOCONRegValue = case IntPinMirror of
-						   ?MCP23X17_INT_PINS_MIRRORED ->
-							   bit_operations:bit_set(IOCONRegValue, ?IOCON_MIRROR);
-						   ?MCP23X17_INT_PINS_NOT_MIRRORED ->
-							   bit_operations:bit_clear(IOCONRegValue, ?IOCON_MIRROR)
-								   end,
-	write(CommType, HwAddr, ?IOCON_ADDR, NewIOCONRegValue).
+	case read(CommType, HwAddr, ?IOCON_ADDR) of
+		{ok, IOCONRegValue} ->
+			NewIOCONRegValue = case IntPinMirror of
+								   ?MCP23X17_INT_PINS_MIRRORED ->
+									   bit_operations:bit_set(IOCONRegValue, ?IOCON_MIRROR);
+								   ?MCP23X17_INT_PINS_NOT_MIRRORED ->
+									   bit_operations:bit_clear(IOCONRegValue, ?IOCON_MIRROR)
+							   end,
+			write(CommType, HwAddr, ?IOCON_ADDR, NewIOCONRegValue);
+		{error, ER} ->
+			{error, ER}
+	end.
 
 %% ====================================================================
 %% @doc
