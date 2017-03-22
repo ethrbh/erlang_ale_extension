@@ -61,7 +61,7 @@
 %% ====================================================================
 -define(SERVER, ?MODULE).
 -define(TIMEOUT, 1000).
-
+-define(NUMBER_OF_BYTE_TO_READ, 1).
 
 %% ====================================================================
 %% Behavioural functions
@@ -533,7 +533,8 @@ do_set_temperature_limit_set_register(HwAddress, TemperatureLimit) ->
 %% ====================================================================
 do_get_temperature_limit_set_register(HwAddress) ->
 	RegisterRec = #mcp980xTemperatureLimitSetReg{},
-	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, RegisterRec#mcp980xAmbientTemperatureReg.length,
+	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, ?NUMBER_OF_BYTE_TO_READ,
+								 RegisterRec#mcp980xAmbientTemperatureReg.length,
 								 RegisterRec, 
 								 {addrIdx, #mcp980xTemperatureLimitSetReg.address}, 
 								 [#mcp980xTemperatureLimitSetReg.bit_Sign, 
@@ -613,7 +614,8 @@ do_set_temperature_hysteresis_register(HwAddress, TempHystValue) ->
 %% ====================================================================
 do_get_temperature_hysteresis_register(HwAddress) ->
 	RegisterRec = #mcp980xTemperatureHystReg{},
-	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, RegisterRec#mcp980xTemperatureHystReg.length,
+	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, ?NUMBER_OF_BYTE_TO_READ,
+								 RegisterRec#mcp980xTemperatureHystReg.length,
 								 RegisterRec, 
 								 {addrIdx, #mcp980xTemperatureHystReg.address}, 
 								 [#mcp980xTemperatureHystReg.bit_Sign, 
@@ -640,7 +642,8 @@ do_get_temperature(HwAddress) ->
 			
 			%% Read the measured temperature in the device.
 			RegisterRec = #mcp980xAmbientTemperatureReg{},
-			case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, RegisterRec#mcp980xAmbientTemperatureReg.length,
+			case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, ?NUMBER_OF_BYTE_TO_READ,
+										 RegisterRec#mcp980xAmbientTemperatureReg.length,
 										 RegisterRec, 
 										 {addrIdx, #mcp980xAmbientTemperatureReg.address}, 
 										 [#mcp980xAmbientTemperatureReg.bit_Sign, 
@@ -835,7 +838,8 @@ do_set_oneshot_cfg_bit(HwAddress, OneShotCfgBit) ->
 %% ====================================================================
 do_get_cfg_bit(HwAddress, CfgBitIdx) ->
 	%% Read cfg bit in the device
-	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress,
+
+	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, ?NUMBER_OF_BYTE_TO_READ,
 								 #mcp980xConfigReg{}, {addrIdx, #mcp980xConfigReg.address}, 
 								 [CfgBitIdx]) of
 		[{CfgBitIdx, CfgBit}] ->
