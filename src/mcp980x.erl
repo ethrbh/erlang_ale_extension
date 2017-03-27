@@ -533,7 +533,7 @@ do_set_temperature_limit_set_register(HwAddress, TemperatureLimit) ->
 %% ====================================================================
 do_get_temperature_limit_set_register(HwAddress) ->
 	RegisterRec = #mcp980xTemperatureLimitSetReg{},
-	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, ?NUMBER_OF_BYTE_TO_READ,
+	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress,
 								 RegisterRec#mcp980xAmbientTemperatureReg.length,
 								 RegisterRec, 
 								 {addrIdx, #mcp980xTemperatureLimitSetReg.address}, 
@@ -614,7 +614,7 @@ do_set_temperature_hysteresis_register(HwAddress, TempHystValue) ->
 %% ====================================================================
 do_get_temperature_hysteresis_register(HwAddress) ->
 	RegisterRec = #mcp980xTemperatureHystReg{},
-	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, ?NUMBER_OF_BYTE_TO_READ,
+	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress,
 								 RegisterRec#mcp980xTemperatureHystReg.length,
 								 RegisterRec, 
 								 {addrIdx, #mcp980xTemperatureHystReg.address}, 
@@ -642,7 +642,7 @@ do_get_temperature(HwAddress) ->
 			
 			%% Read the measured temperature in the device.
 			RegisterRec = #mcp980xAmbientTemperatureReg{},
-			case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, ?NUMBER_OF_BYTE_TO_READ,
+			case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress,
 										 RegisterRec#mcp980xAmbientTemperatureReg.length,
 										 RegisterRec, 
 										 {addrIdx, #mcp980xAmbientTemperatureReg.address}, 
