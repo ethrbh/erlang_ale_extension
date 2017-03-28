@@ -12,6 +12,7 @@
 %% ====================================================================
 -export([i2c_read/4, i2c_write/3, i2c_write/4]).
 -export([bitfield_set/6, bitfield_set/7, bitfield_get/6]).
+-export([bit_set/4, bit_get/3]).
 
 %% ====================================================================
 %% Includes
@@ -144,7 +145,15 @@ bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {addrId
 	%% Read register value
 	case i2c_read(CommDeviceName, HwAddress, erlang:element(RegisterAddressIdx, RegisterRec), NumberOfByteToRead) of
 		{ok, RegisterValue} ->
-			bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {regValue, RegisterValue}, BitFieldIdx);
+			
+			%% If the length of the byte to be read more than 1, the result should be convert into
+			%% a integer number. In the case when NumberOfByteToRead > 1, the result will be
+			%% << B1, B2, .. >> depending of the NumberOfByteToRead.
+			io:format("@@ Start convert binary to integer, ~p~n",[RegisterValue]),
+			RegisterValueModified = bit_operations:byte_list_to_integer(RegisterValue),
+			io:format("@@ Start convert binary to integer - DONE, ~p~n",[{RegisterValue, RegisterValueModified}]),
+			bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {regValue, RegisterValueModified}, BitFieldIdx);
+		
 		ER->ER
 	end;
 bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {regValue, RegisterCurrentValue}, BitFieldIdx) when is_integer(BitFieldIdx)->

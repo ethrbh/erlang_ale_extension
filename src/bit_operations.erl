@@ -24,7 +24,9 @@
 		 bit_set/2, bit_set/3, bit_set/4,
 		 bit_clear/2,
 		 bit_get/2, bit_get/3,
-		 bit_toggle/2]).
+		 bit_toggle/2,
+		 byte_shift_l/2, byte_shift_r/2,
+		 byte_list_to_integer/1, byte_list_to_integer/2]).
 
 %% ====================================================================
 %% @doc
@@ -181,6 +183,57 @@ bit_toggle(Byte, Bit) ->
 			bit_set(Byte, Bit);
 		_-> bit_clear(Byte, Bit)
 	end.
+
+%% ====================================================================
+%% @doc
+%% Shift the given byte to left by the given number. 
+%% example: 23 decimal should be shift to left by 8 decimal
+%%          23 bsl 8 = 5888
+%% @end
+-spec byte_shift_l(integer(), integer()) -> integer().
+%% ====================================================================
+byte_shift_l(Byte, Number) ->
+	Byte bsl Number.
+
+%% ====================================================================
+%% @doc
+%% Shift the given byte to right by the given number. 
+%% @end
+-spec byte_shift_r(integer(), integer()) -> integer().
+%% ====================================================================
+byte_shift_r(Byte, Number) ->
+	Byte bsr Number.
+
+%% ====================================================================
+%% @doc
+%% Convert the given byte list to integer
+%% example: <<23,5>> -> 5888 + 5 = 
+%% @end
+-spec byte_list_to_integer(binary()) -> integer().
+%% ====================================================================
+byte_list_to_integer(ByteList) when is_binary(ByteList) ->	
+	byte_list_to_integer(ByteList, 8).
+
+%% ====================================================================
+%% @doc
+%% Convert the given byte list to integer
+%% example: <<23,5>> -> 5888 + 5 = 
+%% @end
+-spec byte_list_to_integer(binary(), integer()) -> integer().
+%% ====================================================================
+byte_list_to_integer(ByteList, ShiftWith) when is_binary(ByteList) ->
+	L = erlang:binary_to_list(ByteList),
+	ShiftWithList = [begin
+						 ShiftValue*ShiftWith
+					 end || ShiftValue <- lists:reverse(lists:seq(0, erlang:length(L)-1))],
+	ByteListWithShiftValue = lists:zip(L, ShiftWithList),
+	byte_list_to_integer_acc(ByteListWithShiftValue, 0).
+
+byte_list_to_integer_acc([], Acc) ->
+	Acc;
+byte_list_to_integer_acc([{Byte, Shift} | T], Acc) ->
+	Value = Byte bsl Shift,
+	byte_list_to_integer_acc(T, Acc+Value).
 
 %% ====================================================================
 %% Internal functions
