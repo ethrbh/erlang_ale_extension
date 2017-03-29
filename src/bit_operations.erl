@@ -23,10 +23,12 @@
 		 bit_list_get/1, bit_list_get/3,
 		 bit_set/2, bit_set/3, bit_set/4,
 		 bit_clear/2,
-		 bit_get/2, bit_get/3,
+		 bit_get/2, bit_get/4,
 		 bit_toggle/2,
 		 byte_shift_l/2, byte_shift_r/2,
-		 byte_list_to_integer/1, byte_list_to_integer/2]).
+		 byte_list_to_integer/1, byte_list_to_integer/2,
+		 byte_get_max_value/1,
+		 byte_count_bit/4]).
 
 %% ====================================================================
 %% @doc
@@ -68,7 +70,8 @@ bit_list_get(Data) ->
 bit_list_get(Data, Base, BaseBitLength) ->
 	%% Find the number of bits of the given byte.
 	N = bit_list_get_loop(Data, 1, Base),
-
+	%%io:format("@@@ bit_list_get_loop - DONE ~p~n",[{Data, 1, Base, N}]),
+	
 	%% Compute the bit list.
 	[begin
 		 bit_test(Data,Bit)
@@ -155,14 +158,16 @@ bit_get(Byte, Mask) ->
 %% This is the same function what bit_get/2 is, but here the Value given by
 %% bit_get/2 must shift left till the first bit in the byte.
 %% @end
--spec bit_get(data(), bitfield_mask(), doShiftValueAfterGet) -> bitfield_value().
+-spec bit_get(data(), integer(), bitfield_mask(), doShiftValueAfterGet) -> bitfield_value().
 %% ====================================================================
-bit_get(Byte, BitFieldMask, doShiftValueAfterGet) ->
+bit_get(Byte, ByteLength, BitFieldMask, doShiftValueAfterGet) ->
 	%% Get the bits in the given byte.
 	ValueT = bit_get(Byte, BitFieldMask),
+	%%io:format("@@@ bit_get - DONE ~p~n",[{Byte, BitFieldMask, ValueT}]),
 	
 	%% Get the list of bit of bitfield_mask.
-	BitListOfMask = bit_list_get(BitFieldMask),
+	%%BitListOfMask = bit_list_get(BitFieldMask),
+	BitListOfMask = bit_list_get(BitFieldMask, byte_get_max_value(ByteLength), (8 * ByteLength)),
 	
 	%% Find the position of the 1st 1 from right. This will set how 
 	%% to shif the Value to left for fit to the bitfield_mask.
@@ -209,9 +214,9 @@ byte_shift_r(Byte, Number) ->
 %% Convert the given byte list to integer
 %% example: <<23,5>> -> 5888 + 5 = 
 %% @end
--spec byte_list_to_integer(binary()) -> integer().
+-spec byte_list_to_integer(binary() | integer()) -> integer().
 %% ====================================================================
-byte_list_to_integer(ByteList) when is_binary(ByteList) ->	
+byte_list_to_integer(ByteList) when (is_binary(ByteList) or is_integer(ByteList)) ->	
 	byte_list_to_integer(ByteList, 8).
 
 %% ====================================================================
@@ -219,14 +224,17 @@ byte_list_to_integer(ByteList) when is_binary(ByteList) ->
 %% Convert the given byte list to integer
 %% example: <<23,5>> -> 5888 + 5 = 
 %% @end
--spec byte_list_to_integer(binary(), integer()) -> integer().
+-spec byte_list_to_integer(binary() | integer(), integer()) -> integer().
 %% ====================================================================
 byte_list_to_integer(ByteList, ShiftWith) when is_binary(ByteList) ->
-	L = erlang:binary_to_list(ByteList),
+	byte_list_to_integer(erlang:binary_to_list(ByteList), ShiftWith);
+byte_list_to_integer(Byte, ShiftWith) when is_integer(Byte) ->
+	byte_list_to_integer([Byte], ShiftWith);
+byte_list_to_integer(ByteList, ShiftWith) when is_list(ByteList) ->
 	ShiftWithList = [begin
 						 ShiftValue*ShiftWith
-					 end || ShiftValue <- lists:reverse(lists:seq(0, erlang:length(L)-1))],
-	ByteListWithShiftValue = lists:zip(L, ShiftWithList),
+					 end || ShiftValue <- lists:reverse(lists:seq(0, erlang:length(ByteList)-1))],
+	ByteListWithShiftValue = lists:zip(ByteList, ShiftWithList),
 	byte_list_to_integer_acc(ByteListWithShiftValue, 0).
 
 byte_list_to_integer_acc([], Acc) ->
@@ -234,6 +242,48 @@ byte_list_to_integer_acc([], Acc) ->
 byte_list_to_integer_acc([{Byte, Shift} | T], Acc) ->
 	Value = Byte bsl Shift,
 	byte_list_to_integer_acc(T, Acc+Value).
+
+%% ====================================================================
+%% @doc
+%% Gives maximum integer value of the given byte length.
+%% Currently the 1-3 byte length numbers are handled.
+%% Example:
+%%		If ByteLength is 1, the max value is 16#FF
+%%		If ByteLength is 2, the max value is 16#FFFF
+%% @end
+-spec byte_get_max_value(integer()) -> integer().
+%% ====================================================================
+byte_get_max_value(ByteLength) ->
+	case ByteLength of
+		1 ->
+			16#FF;
+		2 ->
+			16#FFFF;
+		3 ->
+			16#FFFFFF
+	end.
+
+%% ====================================================================
+%% @doc
+%% Count of number of 1 or 0 bits in the given integer.
+%% Example:
+%%	Data = 1234
+%%	Base = 16#FFFF
+%%	BaseBitLength = 16
+%%	Bit = 1
+%%	Result = 5
+%% @end
+-spec byte_count_bit(integer(), integer(), integer(), bit()) -> integer().
+%% ====================================================================
+byte_count_bit(Data, Base, BaseBitLength, Bit) ->
+	byte_count_bit_loop(bit_list_get(Data, Base, BaseBitLength), Bit, 0).
+
+byte_count_bit_loop([], _Bit, Acc) ->
+	Acc;
+byte_count_bit_loop([Bit | T], Bit, Acc) ->
+	byte_count_bit_loop(T, Bit, Acc+1);
+byte_count_bit_loop([_Bit | T], Bit, Acc) ->
+	byte_count_bit_loop(T, Bit, Acc).
 
 %% ====================================================================
 %% Internal functions
@@ -257,4 +307,5 @@ find_1st_1_bit_from_right_loop([1|_T],BitPos) ->
 	find_1st_1_bit_from_right_loop([],BitPos);
 find_1st_1_bit_from_right_loop([0|T],BitPos) ->
 	find_1st_1_bit_from_right_loop(T,BitPos+1).
+
 

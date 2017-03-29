@@ -497,13 +497,20 @@ do_set_temperature_limit_set_register(HwAddress, TemperatureLimit) ->
 					case get_temperature_sign(TemperatureLimit) of
 						{ok, TempSign} ->
 							case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, 
-														 0, RegisterRec, #mcp980xTemperatureLimitSetReg.address, 
-														 [{#mcp980xTemperatureLimitSetReg.bit_Sign, TempSign},
-														  {#mcp980xTemperatureLimitSetReg.bit_TempValue, round(Code)}]) of
+														 RegisterRec, #mcp980xTemperatureLimitSetReg{},
+														 #mcp980xTemperatureLimitSetReg.address, 
+														 #mcp980xTemperatureLimitSetReg.bit_Sign, TempSign) of
 								{ok, _} ->
-									ok;
-								
-								ER->ER
+									case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, 
+																 RegisterRec, #mcp980xTemperatureLimitSetReg{},
+																 #mcp980xTemperatureLimitSetReg.address, 
+																 #mcp980xTemperatureLimitSetReg.bit_TempValue, round(Code)) of
+										{ok, _} ->
+											ok;
+										
+										ER->ER
+									end;
+								ER -> ER
 							end;
 						
 						ER->ER
@@ -578,13 +585,19 @@ do_set_temperature_hysteresis_register(HwAddress, TempHystValue) ->
 					case get_temperature_sign(TempHystValue) of
 						{ok, TempSign} ->
 							case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, 
-														 0, RegisterRec, #mcp980xTemperatureHystReg.address, 
-														 [{#mcp980xTemperatureHystReg.bit_Sign, TempSign},
-														  {#mcp980xTemperatureHystReg.bit_TempValue, round(Code)}]) of
+														 RegisterRec, #mcp980xTemperatureHystReg.address, 
+														 #mcp980xTemperatureHystReg.bit_Sign, TempSign) of
 								{ok, _} ->
-									ok;
-								
-								ER->ER
+									case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, 
+																 RegisterRec, #mcp980xTemperatureHystReg.address, 
+																 #mcp980xTemperatureHystReg.bit_TempValue, round(Code)) of
+										{ok, _} ->
+											ok;
+										
+										ER->ER
+									end;
+								ER ->
+									ER
 							end;
 						
 						ER->ER
@@ -868,17 +881,22 @@ do_set_cfg_bit(HwAddress, CfgBitIdx, CfgBit) ->
 %% @end
 %% ====================================================================
 do_set_cfg_bit(HwAddress, CfgData) ->
+	do_set_cfg_bit_loop(HwAddress, CfgData).
+
+do_set_cfg_bit_loop(_HwAddress, []) ->
+	ok;
+do_set_cfg_bit_loop(HwAddress, [{CfgBitIdx, CfgBit} | T]) ->
 	%% Set cfg bit in the device
 	case read(HwAddress, 
 			  erlang:element(#mcp980xConfigReg.address, #mcp980xConfigReg{}), 
 			  erlang:element(#mcp980xConfigReg.length, #mcp980xConfigReg{})) of
 		{ok, RegisterValue} ->
 			case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress,
-										 #mcp980xConfigReg{}, RegisterValue, 
-										 {addrIdx, #mcp980xConfigReg.address}, 
-										 CfgData) of
+										 RegisterValue, #mcp980xConfigReg{}, #mcp980xConfigReg.address,
+										 CfgBitIdx, 
+										 CfgBit) of
 				{ok,_} ->
-					ok;
+					do_set_cfg_bit_loop(HwAddress, T);
 				ER->
 					?DO_ERR("Failed to read cfg bit", [{reason, ER}]),
 					ER
@@ -931,22 +949,28 @@ compute_temperature(ADCRes, TempSign, TempValue) ->
 	%%					Multiplier is the ADC Res. value. Not the bit value, but the associated resulution value. This can be take in
 	%%					?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST define.
 	
-	ShiftRight = case ADCRes of
-					?CONFIGURATION_REG_ADC_RESOLUTION_9BIT_05C ->
-						8-(9-8);
-					?CONFIGURATION_REG_ADC_RESOLUTION_10BIT_025C ->
-						8-(10-8);
-					?CONFIGURATION_REG_ADC_RESOLUTION_11BIT_0125C ->
-						8-(11-8);
-					?CONFIGURATION_REG_ADC_RESOLUTION_12BIT_00625C ->
-						8-(12-8);
-					 
-					 _-> {error, {"Invalid ADC resolution", ADCRes}}
-				end,
-	case ShiftRight of
-		{error, ER} ->
-			{error, ER};
-		_->
+	RegisterRec = #mcp980xAmbientTemperatureReg{},
+	%%io:format("@@ RegisterRec ~p~n",[RegisterRec]),
+	
+	Length = erlang:element(#mcp980xAmbientTemperatureReg.length, RegisterRec),
+	%%io:format("@@ Length ~p~n",[Length]),
+	
+	TempSignMask = (erlang:element(#mcp980xAmbientTemperatureReg.bit_Sign, RegisterRec))#bitParam.mask,
+	%%io:format("@@ TempSignMask ~p~n",[TempSignMask]),
+	
+	TempValueMask = (erlang:element(#mcp980xAmbientTemperatureReg.bit_TempValue,RegisterRec))#bitParam.mask,
+	%%io:format("@@ TempValueMask ~p~n",[TempValueMask]),
+	
+	TempSignMaskBitLength = bit_operations:byte_count_bit(TempSignMask, bit_operations:byte_get_max_value(Length), 16, 1),
+	%%io:format("@@ TempSignMaskBitLength ~p~n",[TempSignMaskBitLength]),
+	
+	TempValueMaskBitLength = bit_operations:byte_count_bit(TempValueMask, bit_operations:byte_get_max_value(Length), 16, 1),
+	%%io:format("@@ TempValueMaskBitLength ~p~n",[TempValueMaskBitLength]),
+	
+	case lists:keyfind(ADCRes, 1, ?CONFIGURATION_REG_ADC_RESOLUTION_BIT_LENGHT) of
+		{ADCRes, ADCResBitLength} ->
+			ShiftRight = TempValueMaskBitLength-(ADCResBitLength-TempSignMaskBitLength),
+			
 			%% Shift right the register value with N bit. The number of bit depends of the ADC res. value.
 			Code = TempValue bsr ShiftRight,
 			case lists:keysearch(ADCRes, 1, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
@@ -973,7 +997,9 @@ compute_temperature(ADCRes, TempSign, TempValue) ->
 				
 				false ->
 					{error, {"Multiplier does not found", {adcRes, ADCRes}}}
-			end
+			end;
+		false ->
+			{error, {"Invalid ADC resolution", ADCRes}}
 	end.
 
 %% ====================================================================

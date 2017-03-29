@@ -12,7 +12,7 @@
 %% ====================================================================
 -export([i2c_read/4, i2c_write/3, i2c_write/4]).
 -export([bitfield_set/6, bitfield_set/7, bitfield_get/6]).
--export([bit_set/4, bit_get/3]).
+-export([bit_set/4, bit_get/4]).
 
 %% ====================================================================
 %% Includes
@@ -120,7 +120,7 @@ bitfield_set(CommDeviceName, HwAddress, RegisterCurrentValue, RegisterRec, Regis
 					ER2
 			end;
 			
-		_-> {error, {"Invalid bitfield value when call bitfield_set/5.", {{module, ?MODULE},
+		_-> {error, {"Invalid bitfield value when call bitfield_set/7.", {{module, ?MODULE},
 																		  {line, ?LINE},
 																		  {registerRec, RegisterRec},
 																		  {bitfieldIdx, BitFieldIdx},
@@ -149,26 +149,27 @@ bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {addrId
 			%% If the length of the byte to be read more than 1, the result should be convert into
 			%% a integer number. In the case when NumberOfByteToRead > 1, the result will be
 			%% << B1, B2, .. >> depending of the NumberOfByteToRead.
-			io:format("@@ Start convert binary to integer, ~p~n",[RegisterValue]),
+			%%io:format("@@ Start convert binary to integer, ~p~n",[RegisterValue]),
 			RegisterValueModified = bit_operations:byte_list_to_integer(RegisterValue),
-			io:format("@@ Start convert binary to integer - DONE, ~p~n",[{RegisterValue, RegisterValueModified}]),
+			%%io:format("@@ Start convert binary to integer - DONE, ~p~n",[{RegisterValue, RegisterValueModified}]),
+			
 			bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {regValue, RegisterValueModified}, BitFieldIdx);
 		
 		ER->ER
 	end;
 bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {regValue, RegisterCurrentValue}, BitFieldIdx) when is_integer(BitFieldIdx)->
 	bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {regValue, RegisterCurrentValue}, [BitFieldIdx]);
-bitfield_get(_CommDeviceName, _HwAddress, _NumberOfByteToRead, RegisterRec, {regValue, RegisterCurrentValue}, BitFieldIdxList) when is_list(BitFieldIdxList)->
-	bitfield_get_loop(RegisterRec, {regValue, RegisterCurrentValue}, BitFieldIdxList, []).
+bitfield_get(_CommDeviceName, _HwAddress, NumberOfByteToRead, RegisterRec, {regValue, RegisterCurrentValue}, BitFieldIdxList) when is_list(BitFieldIdxList)->
+	bitfield_get_loop(RegisterRec, {regValue, RegisterCurrentValue}, NumberOfByteToRead, BitFieldIdxList, []).
 
-bitfield_get_loop(_RegisterRec, {regValue, _RegisterCurrentValue}, [], Result) ->
+bitfield_get_loop(_RegisterRec, {regValue, _RegisterCurrentValue}, _NumberOfByteToRead, [], Result) ->
 	Result;
-bitfield_get_loop(RegisterRec, {regValue, RegisterCurrentValue}, [BitFieldIdx | T], Result) ->
+bitfield_get_loop(RegisterRec, {regValue, RegisterCurrentValue}, NumberOfByteToRead, [BitFieldIdx | T], Result) ->
 	%% Find BitParam record in RegisterRec
 	BitParam = erlang:element(BitFieldIdx, RegisterRec),
 	
-	BitFieldValue = bit_get(RegisterCurrentValue, BitParam#bitParam.mask, BitParam#bitParam.doshiftvalue),
-	bitfield_get_loop(RegisterRec, {regValue, RegisterCurrentValue}, T, lists:append(Result, [{BitFieldIdx, BitFieldValue}])).
+	BitFieldValue = bit_get(RegisterCurrentValue, NumberOfByteToRead, BitParam#bitParam.mask, BitParam#bitParam.doshiftvalue),
+	bitfield_get_loop(RegisterRec, {regValue, RegisterCurrentValue}, NumberOfByteToRead, T, lists:append(Result, [{BitFieldIdx, BitFieldValue}])).
 
 %% ====================================================================
 %% Validate bit value.
@@ -213,12 +214,12 @@ bit_set(RegValue, BitFieldValue, BitFieldMask, DoShiftValue) ->
 %% Get the Value specified by Mask in RegValue. Shift the given Value to right
 %% if DoShiftValue==true.
 %% @end
--spec bit_get(int_data(), bitfield_mask(), boolean()) -> int_data().
+-spec bit_get(int_data(), int_data(), bitfield_mask(), boolean()) -> int_data().
 %% ====================================================================
-bit_get(RegValue, BitFieldMask, DoShiftValue) ->
+bit_get(RegValue, ByteLength, BitFieldMask, DoShiftValue) ->
 	case DoShiftValue of
 		true ->
-			bit_operations:bit_get(RegValue, BitFieldMask, doShiftValueAfterGet);
+			bit_operations:bit_get(RegValue, ByteLength, BitFieldMask, doShiftValueAfterGet);
 		false ->
 			bit_operations:bit_get(RegValue, BitFieldMask)
 	end.
