@@ -21,12 +21,12 @@
 -export([
 		 bit_test/2,
 		 bit_list_get/1, bit_list_get/3,
-		 bit_set/2, bit_set/3, bit_set/4,
+		 bit_set/2, bit_set/3, bit_set/5,
 		 bit_clear/2,
 		 bit_get/2, bit_get/4,
 		 bit_toggle/2,
 		 byte_shift_l/2, byte_shift_r/2,
-		 byte_list_to_integer/1, byte_list_to_integer/2,
+		 byte_list_to_integer/1, integer_to_byte_list/1,
 		 byte_get_max_value/1,
 		 byte_count_bit/4]).
 
@@ -36,16 +36,16 @@
 %% @end
 -spec bit_test(data(), bit()) -> 0 | 1.
 %% ====================================================================
-bit_test(Byte, Bit) when Bit == 0 ->
-	Byte band 1;
-bit_test(Byte, Bit) when Bit > 0 ->
+bit_test(Data, Bit) when Bit == 0 ->
+	Data band 1;
+bit_test(Data, Bit) when Bit > 0 ->
 	%% B0 - Val band 1
 	%% B1 - (Val band 2) bsr 1
 	%% B2 - (Val band 4) bsr 2
 	%% B3 - (Val band 8) bsr 3
 	%% ...	
 	BAND_MASK = erlang:round(math:pow(2, Bit)),
-	(Byte band BAND_MASK) bsr Bit.
+	(Data band BAND_MASK) bsr Bit.
 
 %% ====================================================================
 %% @doc
@@ -90,9 +90,9 @@ bit_list_get_loop(_Byte, N, _Base) ->
 %% @end
 -spec bit_set(data(), bit()) -> data().
 %% ====================================================================
-bit_set(Byte, Bit) ->
+bit_set(Data, Bit) ->
 	MASK = 1 bsl Bit,
-	Byte bor MASK.
+	Data bor MASK.
 
 %% ====================================================================
 %% @doc
@@ -102,13 +102,13 @@ bit_set(Byte, Bit) ->
 %% @end
 -spec bit_set(data(), bitfield_value(), bitfield_mask()) -> data().
 %% ====================================================================
-bit_set(Byte, Value, Mask) ->
+bit_set(Data, Value, Mask) ->
 	%% Clear the bits specified by MASK first.
 	MaskT = bnot(Mask),
-	ByteT = Byte band MaskT,
+	DataT = Data band MaskT,
 	
 	%% Set the required bits.
-	ByteT bor Value.
+	DataT bor Value.
 
 %% ====================================================================
 %% @doc
@@ -116,11 +116,13 @@ bit_set(Byte, Value, Mask) ->
 %% does not shifted to the right bit positions, the must do before
 %% set the required valus of the bits.
 %% @end
--spec bit_set(data(), bitfield_value(), bitfield_mask(), doShiftValueBeforeSet) -> data().
+-spec bit_set(data(), integer(), bitfield_value(), bitfield_mask(), doShiftValueBeforeSet) -> data().
 %% ====================================================================
-bit_set(Byte, BitFieldValue, BitFieldMask, doShiftValueBeforeSet) ->
+bit_set(Data, DataLength, BitFieldValue, BitFieldMask, doShiftValueBeforeSet) ->
+	
 	%% Get the list of bit of bitfield_mask.
-	BitListOfMask = bit_list_get(BitFieldMask),
+	%%%BitListOfMask = bit_list_get(BitFieldMask),
+	BitListOfMask = bit_list_get(BitFieldMask, byte_get_max_value(DataLength), (8 * DataLength)),
 	
 	%% Find the position of the 1st 1 from right. This will set how 
 	%% to shif the Value to left for fit to the bitfield_mask.
@@ -130,7 +132,7 @@ bit_set(Byte, BitFieldValue, BitFieldMask, doShiftValueBeforeSet) ->
 	ValueT = BitFieldValue bsl BitPos,
 	
 	%% Set the bits in the given byte.
-	bit_set(Byte, ValueT, BitFieldMask).
+	bit_set(Data, ValueT, BitFieldMask).
 
 %% ====================================================================
 %% @doc
@@ -140,9 +142,9 @@ bit_set(Byte, BitFieldValue, BitFieldMask, doShiftValueBeforeSet) ->
 %% @end
 -spec bit_clear(data(), bit()) -> data().
 %% ====================================================================
-bit_clear(Byte, Bit) when Byte =< 255, Bit =< 7 ->
+bit_clear(Data, Bit) when Data =< 255, Bit =< 7 ->
 	MASK = bnot(1 bsl Bit),
-	Byte band MASK.
+	Data band MASK.
 
 %% ====================================================================
 %% @doc
@@ -150,8 +152,8 @@ bit_clear(Byte, Bit) when Byte =< 255, Bit =< 7 ->
 %% @end
 -spec bit_get(data(), bitfield_mask()) -> bitfield_value().
 %% ====================================================================
-bit_get(Byte, Mask) ->
-	Byte band Mask.
+bit_get(Data, Mask) ->
+	Data band Mask.
 
 %% ====================================================================
 %% @doc
@@ -160,14 +162,14 @@ bit_get(Byte, Mask) ->
 %% @end
 -spec bit_get(data(), integer(), bitfield_mask(), doShiftValueAfterGet) -> bitfield_value().
 %% ====================================================================
-bit_get(Byte, ByteLength, BitFieldMask, doShiftValueAfterGet) ->
+bit_get(Data, DataLength, BitFieldMask, doShiftValueAfterGet) ->
 	%% Get the bits in the given byte.
-	ValueT = bit_get(Byte, BitFieldMask),
+	ValueT = bit_get(Data, BitFieldMask),
 	%%io:format("@@@ bit_get - DONE ~p~n",[{Byte, BitFieldMask, ValueT}]),
 	
 	%% Get the list of bit of bitfield_mask.
 	%%BitListOfMask = bit_list_get(BitFieldMask),
-	BitListOfMask = bit_list_get(BitFieldMask, byte_get_max_value(ByteLength), (8 * ByteLength)),
+	BitListOfMask = bit_list_get(BitFieldMask, byte_get_max_value(DataLength), (8 * DataLength)),
 	
 	%% Find the position of the 1st 1 from right. This will set how 
 	%% to shif the Value to left for fit to the bitfield_mask.
@@ -182,11 +184,11 @@ bit_get(Byte, ByteLength, BitFieldMask, doShiftValueAfterGet) ->
 %% @end
 -spec bit_toggle(data(), bit()) -> data().
 %% ====================================================================
-bit_toggle(Byte, Bit) ->
-	case bit_test(Byte, Bit) of
+bit_toggle(Data, Bit) ->
+	case bit_test(Data, Bit) of
 		0 ->
-			bit_set(Byte, Bit);
-		_-> bit_clear(Byte, Bit)
+			bit_set(Data, Bit);
+		_-> bit_clear(Data, Bit)
 	end.
 
 %% ====================================================================
@@ -206,31 +208,22 @@ byte_shift_l(Byte, Number) ->
 %% @end
 -spec byte_shift_r(integer(), integer()) -> integer().
 %% ====================================================================
-byte_shift_r(Byte, Number) ->
-	Byte bsr Number.
+byte_shift_r(Data, Number) ->
+	Data bsr Number.
 
 %% ====================================================================
 %% @doc
 %% Convert the given byte list to integer
-%% example: <<23,5>> -> 5888 + 5 = 
+%% example: <<23,5>> -> 5888 + 5 = 5893
 %% @end
 -spec byte_list_to_integer(binary() | integer()) -> integer().
 %% ====================================================================
-byte_list_to_integer(ByteList) when (is_binary(ByteList) or is_integer(ByteList)) ->	
-	byte_list_to_integer(ByteList, 8).
-
-%% ====================================================================
-%% @doc
-%% Convert the given byte list to integer
-%% example: <<23,5>> -> 5888 + 5 = 
-%% @end
--spec byte_list_to_integer(binary() | integer(), integer()) -> integer().
-%% ====================================================================
-byte_list_to_integer(ByteList, ShiftWith) when is_binary(ByteList) ->
-	byte_list_to_integer(erlang:binary_to_list(ByteList), ShiftWith);
-byte_list_to_integer(Byte, ShiftWith) when is_integer(Byte) ->
-	byte_list_to_integer([Byte], ShiftWith);
-byte_list_to_integer(ByteList, ShiftWith) when is_list(ByteList) ->
+byte_list_to_integer(ByteList) when is_binary(ByteList) ->
+	byte_list_to_integer(erlang:binary_to_list(ByteList));
+byte_list_to_integer(Byte) when is_integer(Byte) ->
+	byte_list_to_integer([Byte]);
+byte_list_to_integer(ByteList) when is_list(ByteList) ->
+	ShiftWith = 8, %% Shift with 8 bit
 	ShiftWithList = [begin
 						 ShiftValue*ShiftWith
 					 end || ShiftValue <- lists:reverse(lists:seq(0, erlang:length(ByteList)-1))],
@@ -245,16 +238,38 @@ byte_list_to_integer_acc([{Byte, Shift} | T], Acc) ->
 
 %% ====================================================================
 %% @doc
+%% Convert the given integer to byte list
+%% example: 5893 = 5888 + 5 = <<23,5>>
+%% @end
+-spec integer_to_byte_list(Data :: integer()) -> binary().
+%% ====================================================================
+integer_to_byte_list(Data) ->
+	ShiftWith = 8,	%% Shift with 8 bit
+	Mask = 16#FF,	%% This is the mask for getting the most left 8 bit from the Data
+	DataInHex = erlang:integer_to_list(Data, 16),
+	NumberOfByte = erlang:round(erlang:length(DataInHex)/2),
+	integer_to_byte_list_loop(Data, ShiftWith, Mask, NumberOfByte, []).
+
+integer_to_byte_list_loop(_Data, _ShiftWith, _Mask, 0, ByteList) ->
+	erlang:list_to_binary(lists:reverse(ByteList));
+integer_to_byte_list_loop(Data, ShiftWith, Mask, NumberOfByte, ByteList) ->
+	B1 = Data band Mask,
+	NewByteList = lists:append(ByteList, [B1]),
+	D2 = Data bsr ShiftWith,
+	integer_to_byte_list_loop(D2, ShiftWith, Mask, NumberOfByte-1, NewByteList).
+
+%% ====================================================================
+%% @doc
 %% Gives maximum integer value of the given byte length.
 %% Currently the 1-3 byte length numbers are handled.
 %% Example:
-%%		If ByteLength is 1, the max value is 16#FF
-%%		If ByteLength is 2, the max value is 16#FFFF
+%%		If DataLength is 1, the max value is 16#FF
+%%		If DataLength is 2, the max value is 16#FFFF
 %% @end
 -spec byte_get_max_value(integer()) -> integer().
 %% ====================================================================
-byte_get_max_value(ByteLength) ->
-	case ByteLength of
+byte_get_max_value(DataLength) ->
+	case DataLength of
 		1 ->
 			16#FF;
 		2 ->

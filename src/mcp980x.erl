@@ -10,6 +10,8 @@
 %% ====================================================================
 %% API functions
 %% ====================================================================
+-export([test/0]).
+
 -export([start/1, stop/0]).
 
 -export([
@@ -21,7 +23,7 @@
 		 get_temperature_hysteresis_register/0
 		 ]).
 -export([
-		 get_temperature/0, get_temperature_test/3
+		 get_temperature/0
 		 ]).
 -export([
 		 conversion_mode_continous/0,
@@ -67,6 +69,13 @@
 %% Behavioural functions
 %% ====================================================================
 -record(state, {hwAddress}).
+
+test() ->
+	io:format("@@@ mcp980xConfigReg - ~p~n",[#mcp980xConfigReg{}]),
+	io:format("@@@ mcp980xAmbientTemperatureReg - ~p~n",[#mcp980xAmbientTemperatureReg{}]),
+	io:format("@@@ mcp980xTemperatureHystReg - ~p~n",[#mcp980xTemperatureHystReg{}]),
+	io:format("@@@ mcp980xTemperatureLimitSetReg - ~p~n",[#mcp980xTemperatureLimitSetReg{}]).
+	
 
 %% ====================================================================
 %% @doc
@@ -143,18 +152,6 @@ get_temperature_hysteresis_register() ->
 %% ====================================================================
 get_temperature() ->
 	do_gen_server_call({get_temperature}).
-
-%% ====================================================================
-%% @doc
-%% Read measured temperature value in the device.
--spec get_temperature_test(
-		ADCRes :: adcres_cfg_bit(),
-		TempSign :: temperature_sing(),
-		TempValue :: integer()) -> {ok, TemperatureValue :: float()} | {error, term()}.
-%% @end
-%% ====================================================================
-get_temperature_test(ADCRes, TempSign, TempValue) ->
-	do_gen_server_call({get_temperature_test, ADCRes, TempSign, TempValue}).
 
 %% ====================================================================
 %% @doc
@@ -350,9 +347,6 @@ handle_call({get_temperature_hysteresis_register}, _From, State) ->
 handle_call({get_temperature}, _From, State) ->
 	{reply, do_get_temperature(State#state.hwAddress), State};
 
-handle_call({get_temperature_test, ADCRes, TempSign, TempValue }, _From, State) ->
-	{reply, compute_temperature(ADCRes, TempSign, TempValue), State};
-
 handle_call({conversion_mode_continous}, _From, State) ->
 	{reply, do_conversion_mode_continous(State#state.hwAddress), State};
 
@@ -481,8 +475,81 @@ code_change(_OldVsn, State, _Extra) ->
 		TemperatureLimit :: float()) -> ok | {error, term()}.
 %% ====================================================================
 do_set_temperature_limit_set_register(HwAddress, TemperatureLimit) ->
-	RegisterRec = #mcp980xTemperatureLimitSetReg{},
-	
+	do_set_temperature_limit_register(HwAddress, TemperatureLimit, 
+									  #mcp980xTemperatureLimitSetReg.length, 
+									  #mcp980xTemperatureLimitSetReg{}, 
+									  #mcp980xTemperatureLimitSetReg.address, 
+									  #mcp980xTemperatureLimitSetReg.bit_Sign,
+									  #mcp980xTemperatureLimitSetReg.bit_TempValue).
+
+%% ====================================================================
+%% @doc
+%% Get Temperature Limit-Set register.
+%% Note: The register contains the 9 bit data in two's complement.
+%% @end
+-spec do_get_temperature_limit_set_register(
+		HwAddress :: integer()) -> 
+		  {ok, TemperatureLimit :: float()} | {error, term()}.
+%% ====================================================================
+do_get_temperature_limit_set_register(HwAddress) ->
+	do_get_temperature_limit_register(HwAddress, #mcp980xTemperatureLimitSetReg.length, 
+									  #mcp980xTemperatureLimitSetReg{}, 
+									  #mcp980xTemperatureLimitSetReg.address, 
+									  #mcp980xTemperatureLimitSetReg.bit_Sign, 
+									  #mcp980xTemperatureLimitSetReg.bit_TempValue).
+
+%% ====================================================================
+%% @doc
+%% Set Temperature Hysteresis register.
+%% Note: The register contains the 9 bit data in two's complement,
+%%       So get/set this register can accepts the 9 bit resolution
+%%       values. All other values will be rejected.
+%% @end
+-spec do_set_temperature_hysteresis_register(
+		HwAddress :: integer(),
+		TempHystValue :: float()) -> ok | {error, term()}.
+%% ====================================================================
+do_set_temperature_hysteresis_register(HwAddress, TempHystValue) ->
+	do_set_temperature_limit_register(HwAddress, TempHystValue, 
+									  #mcp980xTemperatureHystReg.length, 
+									  #mcp980xTemperatureHystReg{}, 
+									  #mcp980xTemperatureHystReg.address, 
+									  #mcp980xTemperatureHystReg.bit_Sign,
+									  #mcp980xTemperatureHystReg.bit_TempValue).
+
+%% ====================================================================
+%% @doc
+%% Get Temperature Hysteresis register.
+%% Note: The register contains the 9 bit data in two's complement.
+%% @end
+-spec do_get_temperature_hysteresis_register(
+		HwAddress :: integer()) -> 
+		  {ok, TemperatureLimit :: float()} | {error, term()}.
+%% ====================================================================
+do_get_temperature_hysteresis_register(HwAddress) ->
+	do_get_temperature_limit_register(HwAddress, #mcp980xTemperatureHystReg.length, 
+									  #mcp980xTemperatureHystReg{}, 
+									  #mcp980xTemperatureHystReg.address, 
+									  #mcp980xTemperatureHystReg.bit_Sign, 
+									  #mcp980xTemperatureHystReg.bit_TempValue).
+
+%% ====================================================================
+%% @doc
+%% Set Temperature Limit-Set register.
+%% Note: The register contains the 9 bit data in two's complement,
+%%       So get/set this register can accepts the 9 bit resolution
+%%       values. All other values will be rejected.
+%% @end
+-spec do_set_temperature_limit_register(
+		HwAddress :: integer(),
+		TemperatureLimit :: float(),
+		DataLengthIdx :: integer(),
+		RegisterRec :: tuple(),
+		RegisterAddressIdx :: integer(),
+		TempSignBitFieldIdx :: integer(),
+		TempValueBitFieldIdx :: integer()) -> ok | {error, term()}.
+%% ====================================================================
+do_set_temperature_limit_register(HwAddress, TemperatureLimit, DataLengthIdx, RegisterRec, RegisterAddressIdx, TempSignBitFieldIdx, TempValueBitFieldIdx) ->
 	%% Calculate the integer and fractionation part of the TemperatureLimit.
 	%% To compute these values can be done by this formula: Code = TemperatureLimit / Multiplier_of_9bit_resolution.
 	%% If no reminder of the result of division, the given TemperatureLimit value is valid, oherwise it does not.
@@ -497,14 +564,16 @@ do_set_temperature_limit_set_register(HwAddress, TemperatureLimit) ->
 					case get_temperature_sign(TemperatureLimit) of
 						{ok, TempSign} ->
 							case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, 
-														 RegisterRec, #mcp980xTemperatureLimitSetReg{},
-														 #mcp980xTemperatureLimitSetReg.address, 
-														 #mcp980xTemperatureLimitSetReg.bit_Sign, TempSign) of
+														 DataLengthIdx,
+														 RegisterRec,
+														 RegisterAddressIdx, 
+														 TempSignBitFieldIdx, TempSign) of
 								{ok, _} ->
 									case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, 
-																 RegisterRec, #mcp980xTemperatureLimitSetReg{},
-																 #mcp980xTemperatureLimitSetReg.address, 
-																 #mcp980xTemperatureLimitSetReg.bit_TempValue, round(Code)) of
+																 DataLengthIdx,
+																 RegisterRec,
+																 RegisterAddressIdx,
+																 TempValueBitFieldIdx, round(Code)) of
 										{ok, _} ->
 											ok;
 										
@@ -512,7 +581,6 @@ do_set_temperature_limit_set_register(HwAddress, TemperatureLimit) ->
 									end;
 								ER -> ER
 							end;
-						
 						ER->ER
 					end;
 				
@@ -534,111 +602,30 @@ do_set_temperature_limit_set_register(HwAddress, TemperatureLimit) ->
 %% Get Temperature Limit-Set register.
 %% Note: The register contains the 9 bit data in two's complement.
 %% @end
--spec do_get_temperature_limit_set_register(
-		HwAddress :: integer()) -> 
-		  {ok, TemperatureLimit :: float()} | {error, term()}.
-%% ====================================================================
-do_get_temperature_limit_set_register(HwAddress) ->
-	RegisterRec = #mcp980xTemperatureLimitSetReg{},
-	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress,
-								 RegisterRec#mcp980xAmbientTemperatureReg.length,
-								 RegisterRec, 
-								 {addrIdx, #mcp980xTemperatureLimitSetReg.address}, 
-								 [#mcp980xTemperatureLimitSetReg.bit_Sign, 
-								  #mcp980xTemperatureLimitSetReg.bit_TempValue]) of
-		
-		[{#mcp980xTemperatureLimitSetReg.bit_Sign, TempSign}, 
-		 {#mcp980xTemperatureLimitSetReg.bit_TempValue, TempValue}] ->
-			%% The 2 byte temperature register has been read. Now the temperature value needs to be compute from this value.
-			ADCRes = ?CONFIGURATION_REG_ADC_RESOLUTION_9BIT_05C,
-			compute_temperature(ADCRes, TempSign, TempValue);
-		
-		{error, ER} ->
-			{error, ER}
-	end.
-
-%% ====================================================================
-%% @doc
-%% Set Temperature Hysteresis register.
-%% Note: The register contains the 9 bit data in two's complement,
-%%       So get/set this register can accepts the 9 bit resolution
-%%       values. All other values will be rejected.
-%% @end
--spec do_set_temperature_hysteresis_register(
+-spec do_get_temperature_limit_register(
 		HwAddress :: integer(),
-		TempHystValue :: float()) -> ok | {error, term()}.
+		DataLengthIdx :: integer(),
+		RegisterRec :: tuple(),
+		RegisterAddressIdx :: integer(),
+		TempSignBitFieldIdx :: integer(),
+		TempValueBitFieldIdx :: integer()) -> {ok, TemperatureLimit :: float()} | {error, term()}.
 %% ====================================================================
-do_set_temperature_hysteresis_register(HwAddress, TempHystValue) ->
-	RegisterRec = #mcp980xTemperatureHystReg{},
-	
-	%% Calculate the integer and fractionation part of the TempHystValue.
-	%% To compute these values can be done by this formula: Code = TempHystValue / Multiplier_of_9bit_resolution.
-	%% If no reminder of the result of division, the given TempHystValue value is valid, oherwise it does not.
-	ADCRes = ?CONFIGURATION_REG_ADC_RESOLUTION_9BIT_05C,
-	case lists:keysearch(ADCRes, 1, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
-		{value, {ADCRes, Multiplier}} ->
-			Code = TempHystValue / Multiplier,
-			
-			case (Code - trunc(Code)) == 0 of
-				true ->
-					%% No reminder of the division, the given temperature limit is valid.
-					case get_temperature_sign(TempHystValue) of
-						{ok, TempSign} ->
-							case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, 
-														 RegisterRec, #mcp980xTemperatureHystReg.address, 
-														 #mcp980xTemperatureHystReg.bit_Sign, TempSign) of
-								{ok, _} ->
-									case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, 
-																 RegisterRec, #mcp980xTemperatureHystReg.address, 
-																 #mcp980xTemperatureHystReg.bit_TempValue, round(Code)) of
-										{ok, _} ->
-											ok;
-										
-										ER->ER
-									end;
-								ER ->
-									ER
-							end;
-						
-						ER->ER
-					end;
-				
-				false ->
-					%% There is reminder of the division, this means the given temperature hysteresis value does not fit to the
-					%% 9-bit requirement.
-					{error, {string:concat("Error, the given temperature hysteresis value should be divide without reminder by ", erlang:float_to_list(Multiplier,[{decimals, 1}])),
-							 [{temperatureLimit, TempHystValue},
-							  {divideRes, Code}
-							  ]}}
-			end;
-
-		false ->
-			{error, {"Multiplier does not found", {adcRes, ADCRes}}}
-	end.
-
-%% ====================================================================
-%% @doc
-%% Get Temperature Hysteresis register.
-%% Note: The register contains the 9 bit data in two's complement.
-%% @end
--spec do_get_temperature_hysteresis_register(
-		HwAddress :: integer()) -> 
-		  {ok, TemperatureLimit :: float()} | {error, term()}.
-%% ====================================================================
-do_get_temperature_hysteresis_register(HwAddress) ->
-	RegisterRec = #mcp980xTemperatureHystReg{},
+do_get_temperature_limit_register(HwAddress, DataLengthIdx, RegisterRec, RegisterAddressIdx, TempSignBitFieldIdx, TempValueBitFieldIdx) ->
 	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress,
-								 RegisterRec#mcp980xTemperatureHystReg.length,
+								 DataLengthIdx,
 								 RegisterRec, 
-								 {addrIdx, #mcp980xTemperatureHystReg.address}, 
-								 [#mcp980xTemperatureHystReg.bit_Sign, 
-								  #mcp980xTemperatureHystReg.bit_TempValue]) of
+								 {addrIdx, RegisterAddressIdx}, 
+								 [TempSignBitFieldIdx, 
+								  TempValueBitFieldIdx]) of
 		
-		[{#mcp980xTemperatureHystReg.bit_Sign, TempSign}, 
-		 {#mcp980xTemperatureHystReg.bit_TempValue, TempValue}] ->
+		[{TempSignBitFieldIdx, TempSign}, 
+		 {TempValueBitFieldIdx, TempValue}] ->
 			%% The 2 byte temperature register has been read. Now the temperature value needs to be compute from this value.
 			ADCRes = ?CONFIGURATION_REG_ADC_RESOLUTION_9BIT_05C,
-			compute_temperature(ADCRes, TempSign, TempValue);
+			RegisterLength = erlang:element(DataLengthIdx, RegisterRec),
+			TempSignMask = (erlang:element(TempSignBitFieldIdx, RegisterRec))#bitParam.mask,
+			TempValueMask = (erlang:element(TempValueBitFieldIdx, RegisterRec))#bitParam.mask, 
+			compute_temperature(ADCRes, RegisterLength, TempSign, TempSignMask, TempValue, TempValueMask);
 		
 		{error, ER} ->
 			{error, ER}
@@ -656,7 +643,7 @@ do_get_temperature(HwAddress) ->
 			%% Read the measured temperature in the device.
 			RegisterRec = #mcp980xAmbientTemperatureReg{},
 			case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress,
-										 RegisterRec#mcp980xAmbientTemperatureReg.length,
+										 #mcp980xAmbientTemperatureReg.length,
 										 RegisterRec, 
 										 {addrIdx, #mcp980xAmbientTemperatureReg.address}, 
 										 [#mcp980xAmbientTemperatureReg.bit_Sign, 
@@ -665,7 +652,11 @@ do_get_temperature(HwAddress) ->
 				[{#mcp980xAmbientTemperatureReg.bit_Sign, TempSign}, 
 				 {#mcp980xAmbientTemperatureReg.bit_TempValue, TempValue}] ->
 					%% The 2 byte temperature register has been read. Now the temperature value needs to be compute from this value.
-					compute_temperature(ADCRes, TempSign, TempValue);
+					%%compute_temperature(ADCRes, TempSign, TempValue);
+					RegisterLength = erlang:element(#mcp980xAmbientTemperatureReg.length, #mcp980xAmbientTemperatureReg{}),
+					TempSignMask = (erlang:element(#mcp980xAmbientTemperatureReg.bit_Sign, #mcp980xTemperatureHystReg{}))#bitParam.mask,
+					TempValueMask = (erlang:element(#mcp980xAmbientTemperatureReg.bit_TempValue, #mcp980xAmbientTemperatureReg{}))#bitParam.mask, 
+					compute_temperature(ADCRes, RegisterLength, TempSign, TempSignMask, TempValue, TempValueMask);
 				
 				{error, ER} ->
 					{error, ER}
@@ -852,8 +843,10 @@ do_set_oneshot_cfg_bit(HwAddress, OneShotCfgBit) ->
 do_get_cfg_bit(HwAddress, CfgBitIdx) ->
 	%% Read cfg bit in the device
 
-	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, ?NUMBER_OF_BYTE_TO_READ,
-								 #mcp980xConfigReg{}, {addrIdx, #mcp980xConfigReg.address}, 
+	case dev_common:bitfield_get(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, 
+								 #mcp980xConfigReg.length,
+								 #mcp980xConfigReg{}, 
+								 {addrIdx, #mcp980xConfigReg.address}, 
 								 [CfgBitIdx]) of
 		[{CfgBitIdx, CfgBit}] ->
 			{ok, CfgBit};
@@ -887,22 +880,15 @@ do_set_cfg_bit_loop(_HwAddress, []) ->
 	ok;
 do_set_cfg_bit_loop(HwAddress, [{CfgBitIdx, CfgBit} | T]) ->
 	%% Set cfg bit in the device
-	case read(HwAddress, 
-			  erlang:element(#mcp980xConfigReg.address, #mcp980xConfigReg{}), 
-			  erlang:element(#mcp980xConfigReg.length, #mcp980xConfigReg{})) of
-		{ok, RegisterValue} ->
-			case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress,
-										 RegisterValue, #mcp980xConfigReg{}, #mcp980xConfigReg.address,
-										 CfgBitIdx, 
-										 CfgBit) of
-				{ok,_} ->
-					do_set_cfg_bit_loop(HwAddress, T);
-				ER->
-					?DO_ERR("Failed to read cfg bit", [{reason, ER}]),
-					ER
-			end;
+	case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress,
+								 #mcp980xConfigReg.length,
+								 #mcp980xConfigReg{}, #mcp980xConfigReg.address,
+								 CfgBitIdx, 
+								 CfgBit) of
+		{ok,_} ->
+			do_set_cfg_bit_loop(HwAddress, T);
 		ER->
-			?DO_ERR("Failed to read cfg bit", [{reason, ER}]),
+			?DO_ERR("Failed to read/set cfg bit", [{reason, ER}]),
 			ER
 	end.
 
@@ -937,11 +923,14 @@ get_temperature_sign(TempValue) ->
 %% Compute temperature value.
 -spec compute_temperature(
 		ADCRes :: adcres_cfg_bit(),
+		RegisterLength :: integer(),
 		TempSign :: temperature_sing(),
-		TempValue :: integer()) -> {ok, TemperatureValue :: float()} | {error, term()}.
+		TempSignMask :: integer(),
+		TempValue :: integer(),
+		TempValueMask :: integer()) -> {ok, TemperatureValue :: float()} | {error, term()}.
 %% @end
 %% ====================================================================
-compute_temperature(ADCRes, TempSign, TempValue) ->
+compute_temperature(ADCRes, RegisterLength, TempSign, TempSignMask, TempValue, TempValueMask) ->
 	%% The TemperatureRegValue is a 16 bit wide value, what contains the upper and lower part of the temperature value.
 	%% The formula to compute the temperature value is this:
 	%% Ta = (Code * Multiplier), where
@@ -949,22 +938,10 @@ compute_temperature(ADCRes, TempSign, TempValue) ->
 	%%					Multiplier is the ADC Res. value. Not the bit value, but the associated resulution value. This can be take in
 	%%					?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST define.
 	
-	RegisterRec = #mcp980xAmbientTemperatureReg{},
-	%%io:format("@@ RegisterRec ~p~n",[RegisterRec]),
-	
-	Length = erlang:element(#mcp980xAmbientTemperatureReg.length, RegisterRec),
-	%%io:format("@@ Length ~p~n",[Length]),
-	
-	TempSignMask = (erlang:element(#mcp980xAmbientTemperatureReg.bit_Sign, RegisterRec))#bitParam.mask,
-	%%io:format("@@ TempSignMask ~p~n",[TempSignMask]),
-	
-	TempValueMask = (erlang:element(#mcp980xAmbientTemperatureReg.bit_TempValue,RegisterRec))#bitParam.mask,
-	%%io:format("@@ TempValueMask ~p~n",[TempValueMask]),
-	
-	TempSignMaskBitLength = bit_operations:byte_count_bit(TempSignMask, bit_operations:byte_get_max_value(Length), 16, 1),
+	TempSignMaskBitLength = bit_operations:byte_count_bit(TempSignMask, bit_operations:byte_get_max_value(RegisterLength), 16, 1),
 	%%io:format("@@ TempSignMaskBitLength ~p~n",[TempSignMaskBitLength]),
 	
-	TempValueMaskBitLength = bit_operations:byte_count_bit(TempValueMask, bit_operations:byte_get_max_value(Length), 16, 1),
+	TempValueMaskBitLength = bit_operations:byte_count_bit(TempValueMask, bit_operations:byte_get_max_value(RegisterLength), 16, 1),
 	%%io:format("@@ TempValueMaskBitLength ~p~n",[TempValueMaskBitLength]),
 	
 	case lists:keyfind(ADCRes, 1, ?CONFIGURATION_REG_ADC_RESOLUTION_BIT_LENGHT) of
@@ -1002,14 +979,14 @@ compute_temperature(ADCRes, TempSign, TempValue) ->
 			{error, {"Invalid ADC resolution", ADCRes}}
 	end.
 
-%% ====================================================================
-%% @doc
-%% Read a register in the device
--spec read(HwAddress :: integer(), 
-		   RegAddress :: integer(),
-		   NumberOfByteToRead :: integer()) -> {ok, int_data()} | {error, term()}.
-%% @end
-%% ====================================================================
-read(HwAddress, RegAddr, NumberOfByteToRead) ->
-	dev_common:i2c_read(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, RegAddr, NumberOfByteToRead).
+%% %% ====================================================================
+%% %% @doc
+%% %% Read a register in the device
+%% -spec read(HwAddress :: integer(), 
+%% 		   RegAddress :: integer(),
+%% 		   NumberOfByteToRead :: integer()) -> {ok, int_data()} | {error, term()}.
+%% %% @end
+%% %% ====================================================================
+%% read(HwAddress, RegAddr, NumberOfByteToRead) ->
+%% 	dev_common:i2c_read(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, RegAddr, NumberOfByteToRead).
 

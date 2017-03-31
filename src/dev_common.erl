@@ -12,7 +12,7 @@
 %% ====================================================================
 -export([i2c_read/4, i2c_write/3, i2c_write/4]).
 -export([bitfield_set/6, bitfield_set/7, bitfield_get/6]).
--export([bit_set/4, bit_get/4]).
+-export([bit_set/5, bit_get/4]).
 
 %% ====================================================================
 %% Includes
@@ -53,7 +53,7 @@ i2c_write(CommDeviceName, HwAddress, RegAddr) ->
 		CommDeviceName :: string(),
 		HwAddress :: integer(),
 		RegAddr :: integer(),
-		Value :: integer()) -> ok | {error, term()}.
+		Value :: integer() | binary()) -> ok | {error, term()}.
 %% ====================================================================
 i2c_write(CommDeviceName, HwAddress, RegAddr, Value) ->
 	ale_handler:i2c_write(CommDeviceName, HwAddress, erlang:list_to_binary([RegAddr, Value])).
@@ -65,25 +65,25 @@ i2c_write(CommDeviceName, HwAddress, RegAddr, Value) ->
 -spec bitfield_set(
 		CommDeviceName :: string(),
 		HwAddress :: integer(),
-		RegisterCurrentValue :: int_data(), 
+		DataLengthIdx :: integer(),
 		RegisterRec :: register_rec(), 
 		RegisterAddressIdx :: integer(), 
 		BitfieldList :: list({integer(),int_data()})
 				  ) -> {ok, int_data()} | {error, term()}.
 %% ====================================================================
-bitfield_set(CommDeviceName, HwAddress, RegisterCurrentValue, RegisterRec, RegisterAddressIdx, BitfieldList) ->
-	bitfield_set_loop(CommDeviceName, HwAddress, RegisterCurrentValue, RegisterRec, RegisterAddressIdx, BitfieldList, "").
+bitfield_set(CommDeviceName, HwAddress, DataLengthIdx, RegisterRec, RegisterAddressIdx, BitfieldList) ->
+	bitfield_set_loop(CommDeviceName, HwAddress, DataLengthIdx, RegisterRec, RegisterAddressIdx, BitfieldList, "").
 
-bitfield_set_loop(_CommDeviceName, _HwAddress, RegisterCurrentValue, _RegisterRec, _RegisterAddressIdx, [], []) ->
-	{ok, RegisterCurrentValue};
-bitfield_set_loop(_CommDeviceName, _HwAddress, _RegisterCurrentValue, _RegisterRec, _RegisterAddressIdx, [], Result) ->
-	Result;
-bitfield_set_loop(CommDeviceName, HwAddress, RegisterCurrentValue, RegisterRec, RegisterAddressIdx, [{BitFieldIdx, BitFieldNewValue} | T], Result) ->
-	case bitfield_set(CommDeviceName, HwAddress, RegisterCurrentValue, RegisterRec, RegisterAddressIdx, BitFieldIdx, BitFieldNewValue) of
+bitfield_set_loop(_CommDeviceName, _HwAddress, _DataLengthIdx, _RegisterRec, _RegisterAddressIdx, [], {error, ER}) ->
+	{error, ER};
+bitfield_set_loop(_CommDeviceName, _HwAddress, _DataLengthIdx, _RegisterRec, _RegisterAddressIdx, [], RegisterNewValue) ->
+	{ok, RegisterNewValue};
+bitfield_set_loop(CommDeviceName, HwAddress, DataLengthIdx, RegisterRec, RegisterAddressIdx, [{BitFieldIdx, BitFieldNewValue} | T], _RegisterValue) ->
+	case bitfield_set(CommDeviceName, HwAddress, DataLengthIdx, RegisterRec, RegisterAddressIdx, BitFieldIdx, BitFieldNewValue) of
 		{ok, RegisterNewValue} ->
-			bitfield_set_loop(CommDeviceName, HwAddress, RegisterNewValue, RegisterRec, RegisterAddressIdx, T, Result);
+			bitfield_set_loop(CommDeviceName, HwAddress, DataLengthIdx, RegisterRec, RegisterAddressIdx, T, RegisterNewValue);
 		ER->
-			bitfield_set_loop(CommDeviceName, HwAddress, RegisterCurrentValue, RegisterRec, RegisterAddressIdx, [], ER)
+			bitfield_set_loop(CommDeviceName, HwAddress, DataLengthIdx, RegisterRec, RegisterAddressIdx, [], ER)
 	end.
 	
 %% ====================================================================
@@ -93,14 +93,15 @@ bitfield_set_loop(CommDeviceName, HwAddress, RegisterCurrentValue, RegisterRec, 
 -spec bitfield_set(
 		CommDeviceName :: string(),
 		HwAddress :: integer(),
-		RegisterCurrentValue :: int_data(), 
+		DataLengthIdx :: integer(),
 		RegisterRec :: register_rec(), 
 		RegisterAddressIdx :: integer(), 
 		BitFieldIdx :: integer(), 
 		BitFieldNewValue :: int_data()) -> {ok, int_data()} | {error, term()}.
 %% ====================================================================
-bitfield_set(CommDeviceName, HwAddress, RegisterCurrentValue, RegisterRec, RegisterAddressIdx, BitFieldIdx, BitFieldNewValue) ->
-	%% Find Register Address in RegisterRec
+bitfield_set(CommDeviceName, HwAddress, DataLengthIdx, RegisterRec, RegisterAddressIdx, BitFieldIdx, BitFieldNewValue) ->
+	DataLength = erlang:element(DataLengthIdx, RegisterRec),
+	
 	RegAddr = erlang:element(RegisterAddressIdx, RegisterRec),
 	
 	%% Find BitParam record in RegisterRec
@@ -109,15 +110,27 @@ bitfield_set(CommDeviceName, HwAddress, RegisterCurrentValue, RegisterRec, Regis
 	%% Validate BitFieldNewValue
 	case bitfield_validate(BitFieldNewValue, BitParam#bitParam.value) of
 		true ->
-			%% New BitFieldNewValue value looks good.
-			RegisterNewValue = bit_set(RegisterCurrentValue, BitFieldNewValue, BitParam#bitParam.mask, BitParam#bitParam.doshiftvalue),
-			
-			%% Write new value of regoster into the device
-			case i2c_write(CommDeviceName, HwAddress, RegAddr, RegisterNewValue) of
-				ok ->
-					{ok, RegisterNewValue};
-				ER2->
-					ER2
+			%% Read the register for getting the current value before update
+			case i2c_read(CommDeviceName, HwAddress, RegAddr, DataLength) of
+				{ok, RegisterValue} ->
+					
+					%% If the length of the byte to be read more than 1, the result should be convert into
+					%% a integer number. In the case when NumberOfByteToRead > 1, the result will be
+					%% << B1, B2, .. >> depending of the NumberOfByteToRead.
+					RegisterCurrentValueModified = bit_operations:byte_list_to_integer(RegisterValue),
+					
+					%% New BitFieldNewValue value looks good.
+					RegisterNewValue = bit_set(RegisterCurrentValueModified, DataLength, BitFieldNewValue, BitParam#bitParam.mask, BitParam#bitParam.doshiftvalue),
+					RegisterNewValueModified = bit_operations:integer_to_byte_list(RegisterNewValue),
+					
+					%% Write new value of regoster into the device
+					case i2c_write(CommDeviceName, HwAddress, RegAddr, RegisterNewValueModified) of
+						ok ->
+							{ok, RegisterNewValue};
+						ER2->
+							ER2
+					end;
+				ER -> ER
 			end;
 			
 		_-> {error, {"Invalid bitfield value when call bitfield_set/7.", {{module, ?MODULE},
@@ -136,13 +149,14 @@ bitfield_set(CommDeviceName, HwAddress, RegisterCurrentValue, RegisterRec, Regis
 -spec bitfield_get(
 		CommDeviceName :: string(),
 		HwAddress :: integer(),
-		NumberOfByteToRead :: integer(),
+		DataLengthIdx :: integer(),
 		RegisterRec :: register_rec(),
 		{regValue, int_data()} | {addrIdx, integer()}, 
 		BitFieldIdx :: integer() | list(integer())) -> list({integer(), int_data()}) | {error, term()}.
 %% ====================================================================
-bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {addrIdx, RegisterAddressIdx}, BitFieldIdx) ->
+bitfield_get(CommDeviceName, HwAddress, DataLengthIdx, RegisterRec, {addrIdx, RegisterAddressIdx}, BitFieldIdx) ->
 	%% Read register value
+	NumberOfByteToRead = erlang:element(DataLengthIdx, RegisterRec),
 	case i2c_read(CommDeviceName, HwAddress, erlang:element(RegisterAddressIdx, RegisterRec), NumberOfByteToRead) of
 		{ok, RegisterValue} ->
 			
@@ -153,23 +167,25 @@ bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {addrId
 			RegisterValueModified = bit_operations:byte_list_to_integer(RegisterValue),
 			%%io:format("@@ Start convert binary to integer - DONE, ~p~n",[{RegisterValue, RegisterValueModified}]),
 			
-			bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {regValue, RegisterValueModified}, BitFieldIdx);
+			bitfield_get(CommDeviceName, HwAddress, DataLengthIdx, RegisterRec, {regValue, RegisterValueModified}, BitFieldIdx);
 		
 		ER->ER
 	end;
-bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {regValue, RegisterCurrentValue}, BitFieldIdx) when is_integer(BitFieldIdx)->
-	bitfield_get(CommDeviceName, HwAddress, NumberOfByteToRead, RegisterRec, {regValue, RegisterCurrentValue}, [BitFieldIdx]);
-bitfield_get(_CommDeviceName, _HwAddress, NumberOfByteToRead, RegisterRec, {regValue, RegisterCurrentValue}, BitFieldIdxList) when is_list(BitFieldIdxList)->
-	bitfield_get_loop(RegisterRec, {regValue, RegisterCurrentValue}, NumberOfByteToRead, BitFieldIdxList, []).
+bitfield_get(CommDeviceName, HwAddress, DataLengthIdx, RegisterRec, {regValue, RegisterCurrentValue}, BitFieldIdx) when is_integer(BitFieldIdx)->
+	bitfield_get(CommDeviceName, HwAddress, DataLengthIdx, RegisterRec, {regValue, RegisterCurrentValue}, [BitFieldIdx]);
+bitfield_get(_CommDeviceName, _HwAddress, DataLengthIdx, RegisterRec, {regValue, RegisterCurrentValue}, BitFieldIdxList) when is_list(BitFieldIdxList)->
+	bitfield_get_loop(RegisterRec, {regValue, RegisterCurrentValue}, DataLengthIdx, BitFieldIdxList, []).
 
-bitfield_get_loop(_RegisterRec, {regValue, _RegisterCurrentValue}, _NumberOfByteToRead, [], Result) ->
+bitfield_get_loop(_RegisterRec, {regValue, _RegisterCurrentValue}, _DataLengthIdx, [], Result) ->
 	Result;
-bitfield_get_loop(RegisterRec, {regValue, RegisterCurrentValue}, NumberOfByteToRead, [BitFieldIdx | T], Result) ->
+bitfield_get_loop(RegisterRec, {regValue, RegisterCurrentValue}, DataLengthIdx, [BitFieldIdx | T], Result) ->
 	%% Find BitParam record in RegisterRec
 	BitParam = erlang:element(BitFieldIdx, RegisterRec),
 	
+	NumberOfByteToRead = erlang:element(DataLengthIdx, RegisterRec),
 	BitFieldValue = bit_get(RegisterCurrentValue, NumberOfByteToRead, BitParam#bitParam.mask, BitParam#bitParam.doshiftvalue),
-	bitfield_get_loop(RegisterRec, {regValue, RegisterCurrentValue}, NumberOfByteToRead, T, lists:append(Result, [{BitFieldIdx, BitFieldValue}])).
+	
+	bitfield_get_loop(RegisterRec, {regValue, RegisterCurrentValue}, DataLengthIdx, T, lists:append(Result, [{BitFieldIdx, BitFieldValue}])).
 
 %% ====================================================================
 %% Validate bit value.
@@ -199,12 +215,12 @@ bitfield_validate(Value, PossibleValue) ->
 %% Set the Value specified by Mask in RegValue. Shift the given Value to left
 %% if DoShiftValue==true.
 %% @end
--spec bit_set(int_data(), bitfield_value(), bitfield_mask(), boolean()) -> int_data().
+-spec bit_set(int_data(), int_data(), bitfield_value(), bitfield_mask(), boolean()) -> int_data().
 %% ====================================================================
-bit_set(RegValue, BitFieldValue, BitFieldMask, DoShiftValue) ->
+bit_set(RegValue, DataLength, BitFieldValue, BitFieldMask, DoShiftValue) ->
 	case DoShiftValue of
 		true ->
-			bit_operations:bit_set(RegValue, BitFieldValue, BitFieldMask, doShiftValueBeforeSet);
+			bit_operations:bit_set(RegValue, DataLength, BitFieldValue, BitFieldMask, doShiftValueBeforeSet);
 		false ->
 			bit_operations:bit_set(RegValue, BitFieldValue, BitFieldMask)
 	end.
@@ -216,10 +232,10 @@ bit_set(RegValue, BitFieldValue, BitFieldMask, DoShiftValue) ->
 %% @end
 -spec bit_get(int_data(), int_data(), bitfield_mask(), boolean()) -> int_data().
 %% ====================================================================
-bit_get(RegValue, ByteLength, BitFieldMask, DoShiftValue) ->
+bit_get(RegValue, DataLength, BitFieldMask, DoShiftValue) ->
 	case DoShiftValue of
 		true ->
-			bit_operations:bit_get(RegValue, ByteLength, BitFieldMask, doShiftValueAfterGet);
+			bit_operations:bit_get(RegValue, DataLength, BitFieldMask, doShiftValueAfterGet);
 		false ->
 			bit_operations:bit_get(RegValue, BitFieldMask)
 	end.
