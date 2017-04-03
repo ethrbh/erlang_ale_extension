@@ -79,6 +79,7 @@
 -define(RTC_SECOND_BIT_SECONE_MASK,			2#00001111).
 -record(rtcSecondReg, {
 				   address = 16#00,
+				   length = 1,
 				   bit_st = #bitParam{value = [?RTC_SECOND_BIT_ST_EN, ?RTC_SECOND_BIT_ST_DIS], mask = ?RTC_SECOND_BIT_ST_MASK, doshiftvalue = true},
 				   bit_secTen = #bitParam{value = ?RTC_SECOND_BIT_SECTEN, mask = ?RTC_SECOND_BIT_SECTEN_MASK, doshiftvalue = true},
 				   bit_secOne = #bitParam{value = ?RTC_SECOND_BIT_SECONE, mask = ?RTC_SECOND_BIT_SECONE_MASK, doshiftvalue = true}
@@ -94,6 +95,7 @@
 -define(RTC_MINUTE_BIT_MINONE_MASK,	2#00001111).
 -record(rtcMinuteReg, {
 				   address = 16#01,
+				   length = 1,
 				   bit_minTen = #bitParam{value = ?RTC_MINUTE_BIT_MINTEN, mask = ?RTC_MINUTE_BIT_MINTEN_MASK, doshiftvalue = true},
 				   bit_minOne = #bitParam{value = ?RTC_MINUTE_BIT_MINONE, mask = ?RTC_MINUTE_BIT_MINONE_MASK, doshiftvalue = true}
 				  }).
@@ -125,6 +127,7 @@
 
 -record(rtcHourReg, {
 				 address = 16#02,
+				 length = 1,
 				 bit_timeFormat = #bitParam{value = [?RTC_HOUR_BIT_TIME_FORMAT_12H, ?RTC_HOUR_BIT_TIME_FORMAT_24H], mask = ?RTC_HOUR_BIT_TIME_FORMAT_MASK, doshiftvalue = true},
 				 
 				 %% 12H mode
@@ -156,6 +159,7 @@
 -define(RTC_WKDAY_BIT_WKDAY_MASK,			2#00000111).
 -record(rtcWkDayReg, {
 					  address = 16#03,
+					  length = 1,
 					  bit_oscRun = #bitParam{value = [?RTC_WKDAY_BIT_OSCRUN_EN, ?RTC_WKDAY_BIT_OSCRUN_DIS], mask = ?RTC_WKDAY_BIT_OSCRUN_MASK, doshiftvalue = true},
 					  bit_pwrFail = #bitParam{value = [?RTC_WKDAY_BIT_PWRFAIL_PRIM_PWR_LOST, ?RTC_WKDAY_BIT_PWRFAIL_PRIM_PWR_NOT_LOST], mask = ?RTC_WKDAY_BIT_PWRFAIL_MASK, doshiftvalue = true},
 					  bit_vBatEn = #bitParam{value = [?RTC_WKDAY_BIT_VBATEN_EN, ?RTC_WKDAY_BIT_VBATEN_DIS], mask = ?RTC_WKDAY_BIT_VBATEN_MASK, doshiftvalue = true},
@@ -172,6 +176,7 @@
 -define(RTC_DATE_BIT_DATEONE_MASK,	2#00001111).
 -record(rtcDateReg, {
 					 address = 16#04,
+					 length = 1,
 					 bit_dateTen = #bitParam{value = ?RTC_DATE_BIT_DATETEN, mask = ?RTC_DATE_BIT_DATETEN_MASK, doshiftvalue = true},
 					 bit_dateOne = #bitParam{value = ?RTC_DATE_BIT_DATEONE, mask = ?RTC_DATE_BIT_DATEONE_MASK, doshiftvalue = true}
 					}).
@@ -190,6 +195,7 @@
 -define(RTC_MONTH_BIT_MTHONE_MASK,	2#00001111).
 -record(rtcMonthReg, {
 					  address = 16#05,
+					  length = 1,
 					  bit_lpyr = #bitParam{value = [?RTC_MONTH_BIT_LPYR_LEAPY, ?RTC_MONTH_BIT_LPYR_NOLEAPY], mask = ?RTC_MONTH_BIT_LPYR_MASK, doshiftvalue = true},
 					  bit_monthTen = #bitParam{value = ?RTC_MONTH_BIT_MTHTEN0, mask = ?RTC_MONTH_BIT_MTHTEN0_MASK, doshiftvalue = true},
 					  bit_monthOne = #bitParam{value = ?RTC_MONTH_BIT_MTHONE, mask = ?RTC_MONTH_BIT_MTHONE_MASK, doshiftvalue = true}
@@ -206,6 +212,7 @@
 
 -record(rtcYearReg, {
 					 address = 16#06,
+					 length = 1,
 					 bit_yearTen = #bitParam{value = ?RTC_YEAR_BIT_YEARTEN, mask = ?RTC_YEAR_BIT_YEARTEN_MASK, doshiftvalue = true},
 					 bit_yearOne = #bitParam{value = ?RTC_YEAR_BIT_YEARONE, mask = ?RTC_YEAR_BIT_YEARONE_MASK, doshiftvalue = true}
 					 }).
@@ -217,12 +224,14 @@
 -define(RTC_A1_SEC_ADDR,		16#11).
 -record(rtcAlm0SecReg, {
 					   address = ?RTC_A0_SEC_ADDR,
+					   length = 1,
 					   bit_secTen = #bitParam{value = ?RTC_SECOND_BIT_SECTEN, mask = ?RTC_SECOND_BIT_SECTEN_MASK, doshiftvalue = true},
 					   bit_secOne = #bitParam{value = ?RTC_SECOND_BIT_SECONE, mask = ?RTC_SECOND_BIT_SECONE_MASK, doshiftvalue = true}
 					  }).
 
 -record(rtcAlm1SecReg, {
 					   address = ?RTC_A1_SEC_ADDR,
+					   length = 1,
 					   bit_secTen = #bitParam{value = ?RTC_SECOND_BIT_SECTEN, mask = ?RTC_SECOND_BIT_SECTEN_MASK, doshiftvalue = true},
 					   bit_secOne = #bitParam{value = ?RTC_SECOND_BIT_SECONE, mask = ?RTC_SECOND_BIT_SECONE_MASK, doshiftvalue = true}
 					  }).
@@ -234,12 +243,14 @@
 -define(RTC_A1_MIN_ADDR,		16#12).
 -record(rtcAlm0MinReg, {
 					   address = ?RTC_A0_MIN_ADDR,
+					   length = 1,
 					   bit_minTen = #bitParam{value = ?RTC_MINUTE_BIT_MINTEN, mask = ?RTC_MINUTE_BIT_MINTEN_MASK, doshiftvalue = true},
 					   bit_minOne = #bitParam{value = ?RTC_MINUTE_BIT_MINONE, mask = ?RTC_MINUTE_BIT_MINONE_MASK, doshiftvalue = true}
 					  }).
 
 -record(rtcAlm1MinReg, {
 					   address = ?RTC_A1_MIN_ADDR,
+					   length = 1,
 					   bit_minTen = #bitParam{value = ?RTC_MINUTE_BIT_MINTEN, mask = ?RTC_MINUTE_BIT_MINTEN_MASK, doshiftvalue = true},
 					   bit_minOne = #bitParam{value = ?RTC_MINUTE_BIT_MINONE, mask = ?RTC_MINUTE_BIT_MINONE_MASK, doshiftvalue = true}
 					  }).
@@ -251,6 +262,8 @@
 -define(RTC_A1_HOUR_ADDR,		16#13).
 -record(rtcAlm0HourReg, {
 				 address = ?RTC_A0_HOUR_ADDR,
+				 length = 1,
+				 
 				 bit_timeFormat = #bitParam{value = [?RTC_HOUR_BIT_TIME_FORMAT_12H, ?RTC_HOUR_BIT_TIME_FORMAT_24H], mask = ?RTC_HOUR_BIT_TIME_FORMAT_MASK, doshiftvalue = true},
 				 
 				 %% 12H mode
@@ -265,6 +278,7 @@
 
 -record(rtcAlm1HourReg, {
 				 address = ?RTC_A1_HOUR_ADDR,
+				 length = 1,
 				 bit_timeFormat = #bitParam{value = [?RTC_HOUR_BIT_TIME_FORMAT_12H, ?RTC_HOUR_BIT_TIME_FORMAT_24H], mask = ?RTC_HOUR_BIT_TIME_FORMAT_MASK, doshiftvalue = true},
 				 
 				 %% 12H mode
@@ -303,6 +317,7 @@
 
 -record(rtcAlm0WDayReg, {
 						 address = ?RTC_A0_WKDAY_ADDR,
+						 length = 1,
 						 bit_almPol = #bitParam{value = {?RTC_ALMxWKDAY_BIT_ALMPOL_LOW, ?RTC_ALMxWKDAY_BIT_ALMPOL_HIGH}, mask = ?RTC_ALMxWKDAY_BIT_ALMPOL_MASK, doshiftvalue = true},
 						 bit_almMask = #bitParam{value = [?RTC_ALMxWKDAY_BIT_ALMxMASK_SEC_MATCH,
 														  ?RTC_ALMxWKDAY_BIT_ALMxMASK_MIN_MATCH,
@@ -315,6 +330,7 @@
 
 -record(rtcAlm1WDayReg, {
 						 address = ?RTC_A1_WKDAY_ADDR,
+						 length = 1,
 						 bit_almPol = #bitParam{value = {?RTC_ALMxWKDAY_BIT_ALMPOL_LOW, ?RTC_ALMxWKDAY_BIT_ALMPOL_HIGH}, mask = ?RTC_ALMxWKDAY_BIT_ALMPOL_MASK, doshiftvalue = true},
 						 bit_almMask = #bitParam{value = [?RTC_ALMxWKDAY_BIT_ALMxMASK_SEC_MATCH,
 														  ?RTC_ALMxWKDAY_BIT_ALMxMASK_MIN_MATCH,
@@ -332,11 +348,13 @@
 -define(RTC_A1_DATE_ADDR,	16#15).
 -record(rtcAlm0DateReg, {
 						address = ?RTC_A0_DATE_ADDR,
+						length = 1,
 						bit_dateTen = #bitParam{value = ?RTC_DATE_BIT_DATETEN, mask = ?RTC_DATE_BIT_DATETEN_MASK, doshiftvalue = true},
 						bit_dateOne = #bitParam{value = ?RTC_DATE_BIT_DATEONE, mask = ?RTC_DATE_BIT_DATEONE_MASK, doshiftvalue = true}
 					}).
 -record(rtcAlm1DateReg, {
 						address = ?RTC_A1_DATE_ADDR,
+						length = 1,
 						bit_dateTen = #bitParam{value = ?RTC_DATE_BIT_DATETEN, mask = ?RTC_DATE_BIT_DATETEN_MASK, doshiftvalue = true},
 						bit_dateOne = #bitParam{value = ?RTC_DATE_BIT_DATEONE, mask = ?RTC_DATE_BIT_DATEONE_MASK, doshiftvalue = true}
 					}).
@@ -348,12 +366,14 @@
 -define(RTC_A1_MONTH_ADDR,	16#16).
 -record(rtcAlm0MonthReg, {
 			address = ?RTC_A0_MONTH_ADDR,
+			length = 1,
 			bit_monthTen = #bitParam{value = ?RTC_MONTH_BIT_MTHTEN0, mask = ?RTC_MONTH_BIT_MTHTEN0_MASK, doshiftvalue = true},
 			bit_monthOne = #bitParam{value = ?RTC_MONTH_BIT_MTHONE, mask = ?RTC_MONTH_BIT_MTHONE_MASK, doshiftvalue = true}
 					  }).
 
 -record(rtcAlm1MonthReg, {
 			address = ?RTC_A1_MONTH_ADDR,
+			length = 1,
 			bit_monthTen = #bitParam{value = ?RTC_MONTH_BIT_MTHTEN0, mask = ?RTC_MONTH_BIT_MTHTEN0_MASK, doshiftvalue = true},
 			bit_monthOne = #bitParam{value = ?RTC_MONTH_BIT_MTHONE, mask = ?RTC_MONTH_BIT_MTHONE_MASK, doshiftvalue = true}
 					  }).
@@ -396,6 +416,7 @@
 
 -record(rtcControlReg, {
 					address = 16#07,
+					length = 1,
 					bit_out = #bitParam{value = [?RTC_CTRL_BIT_OUT_MFP_HIGH, ?RTC_CTRL_BIT_OUT_MFP_LOW], mask = ?RTC_CTRL_BIT_OUT_MFP_MASK, doshiftvalue = true},
 					bit_sqwEn = #bitParam{value = [?RTC_CTRL_BIT_SQWEN_EN, ?RTC_CTRL_BIT_SQWEN_DIS], mask = ?RTC_CTRL_BIT_SQWEN_MASK, doshiftvalue = true},
 					bit_almA1 = #bitParam{value = [?RTC_CTRL_BIT_ALM_Ax_EN, ?RTC_CTRL_BIT_ALM_Ax_DIS], mask = ?RTC_CTRL_BIT_ALM_A1_MASK, doshiftvalue = true},
@@ -412,11 +433,13 @@
 -define(RTC_PWR_UP_MIN_ADDR,	16#1C).
 -record(rtcPwrDNMinuteReg, {
 					   address = ?RTC_PWR_DOWN_MIN_ADDR,
+					   length = 1,
 					   bit_minTen = #bitParam{value = ?RTC_MINUTE_BIT_MINTEN, mask = ?RTC_MINUTE_BIT_MINTEN_MASK, doshiftvalue = true},
 					   bit_minOne = #bitParam{value = ?RTC_MINUTE_BIT_MINONE, mask = ?RTC_MINUTE_BIT_MINONE_MASK, doshiftvalue = true}
 					  }).
 -record(rtcPwrUPMinuteReg, {
 					   address = ?RTC_PWR_UP_MIN_ADDR,
+					   length = 1,
 					   bit_minTen = #bitParam{value = ?RTC_MINUTE_BIT_MINTEN, mask = ?RTC_MINUTE_BIT_MINTEN_MASK, doshiftvalue = true},
 					   bit_minOne = #bitParam{value = ?RTC_MINUTE_BIT_MINONE, mask = ?RTC_MINUTE_BIT_MINONE_MASK, doshiftvalue = true}
 					  }).
@@ -428,6 +451,7 @@
 -define(RTC_PWR_UP_HOUR_ADDR,	16#1D).
 -record(rtcPwrDNHourReg, {
 						 address = ?RTC_PWR_DOWN_HOUR_ADDR,
+						 length = 1,
 						 bit_timeFormat = #bitParam{value = [?RTC_HOUR_BIT_TIME_FORMAT_12H, ?RTC_HOUR_BIT_TIME_FORMAT_24H], mask = ?RTC_HOUR_BIT_TIME_FORMAT_MASK, doshiftvalue = true},
 		
 						 %% 12H mode
@@ -441,6 +465,7 @@
 				}).
 -record(rtcPwrUPHourReg, {
 						 address = ?RTC_PWR_UP_HOUR_ADDR,
+						 length = 1,
 						 bit_timeFormat = #bitParam{value = [?RTC_HOUR_BIT_TIME_FORMAT_12H, ?RTC_HOUR_BIT_TIME_FORMAT_24H], mask = ?RTC_HOUR_BIT_TIME_FORMAT_MASK, doshiftvalue = true},
 		
 						 %% 12H mode
@@ -460,11 +485,13 @@
 -define(RTC_PWR_UP_DATE_ADDR,	16#1E).
 -record(rtcPwrDNDateReg, {
 						address = ?RTC_PWR_DOWN_DATE_ADDR,
+						length = 1,
 						bit_dateTen = #bitParam{value = ?RTC_DATE_BIT_DATETEN, mask = ?RTC_DATE_BIT_DATETEN_MASK, doshiftvalue = true},
 						bit_dateOne = #bitParam{value = ?RTC_DATE_BIT_DATEONE, mask = ?RTC_DATE_BIT_DATEONE_MASK, doshiftvalue = true}
 					   }).
 -record(rtcPwrUPDateReg, {
 						address = ?RTC_PWR_UP_DATE_ADDR,
+						length = 1,
 						bit_dateTen = #bitParam{value = ?RTC_DATE_BIT_DATETEN, mask = ?RTC_DATE_BIT_DATETEN_MASK, doshiftvalue = true},
 						bit_dateOne = #bitParam{value = ?RTC_DATE_BIT_DATEONE, mask = ?RTC_DATE_BIT_DATEONE_MASK, doshiftvalue = true}
 					   }).
@@ -485,6 +512,7 @@
 
 -record(rtcPwrDNMonthReg, {
 						 address = ?RTC_PWR_DOWN_MONTH_ADDR,
+						 length = 1,
 						 bit_wDay = #bitParam{value = ?RTC_PWR_MONTH_BIT_WKDAY, mask = ?RTC_PWR_MONTH_BIT_WKDAY_MASK, doshiftvalue = true},
 						 bit_monthTen = #bitParam{value = ?RTC_PWR_MONTH_BIT_MTHTEN0, mask = ?RTC_PWR_MONTH_BIT_MTHTEN0_MASK, doshiftvalue = true},
 						 bit_monthOne = #bitParam{value = ?RTC_PWR_MONTH_BIT_MTHONE, mask = ?RTC_PWR_MONTH_BIT_MTHTONE_MASK, doshiftvalue = true}
@@ -492,6 +520,7 @@
 
 -record(rtcPwrUPMonthReg, {
 						 address = ?RTC_PWR_UP_MONTH_ADDR,
+						 length = 1,
 						 bit_wDay = #bitParam{value = ?RTC_PWR_MONTH_BIT_WKDAY, mask = ?RTC_PWR_MONTH_BIT_WKDAY_MASK, doshiftvalue = true},
 						 bit_monthTen = #bitParam{value = ?RTC_PWR_MONTH_BIT_MTHTEN0, mask = ?RTC_PWR_MONTH_BIT_MTHTEN0_MASK, doshiftvalue = true},
 						 bit_monthOne = #bitParam{value = ?RTC_PWR_MONTH_BIT_MTHONE, mask = ?RTC_PWR_MONTH_BIT_MTHTONE_MASK, doshiftvalue = true}
