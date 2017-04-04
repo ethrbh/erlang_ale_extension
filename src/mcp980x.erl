@@ -750,7 +750,6 @@ do_get_temperature(HwAddress) ->
 				[{#mcp980xAmbientTemperatureReg.bit_Sign, TempSign}, 
 				 {#mcp980xAmbientTemperatureReg.bit_TempValue, TempValue}] ->
 					%% The 2 byte temperature register has been read. Now the temperature value needs to be compute from this value.
-					%%compute_temperature(ADCRes, TempSign, TempValue);
 					RegisterLength = erlang:element(#mcp980xAmbientTemperatureReg.length, #mcp980xAmbientTemperatureReg{}),
 					TempSignMask = (erlang:element(#mcp980xAmbientTemperatureReg.bit_Sign, #mcp980xTemperatureHystReg{}))#bitParam.mask,
 					TempValueMask = (erlang:element(#mcp980xAmbientTemperatureReg.bit_TempValue, #mcp980xAmbientTemperatureReg{}))#bitParam.mask, 
@@ -1042,10 +1041,7 @@ compute_temperature(ADCRes, RegisterLength, TempSign, TempSignMask, TempValue, T
 	%%					?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST define.
 	
 	TempSignMaskBitLength = bit_operations:byte_count_bit(TempSignMask, bit_operations:byte_get_max_value(RegisterLength), 16, 1),
-	%%io:format("@@ TempSignMaskBitLength ~p~n",[TempSignMaskBitLength]),
-	
 	TempValueMaskBitLength = bit_operations:byte_count_bit(TempValueMask, bit_operations:byte_get_max_value(RegisterLength), 16, 1),
-	%%io:format("@@ TempValueMaskBitLength ~p~n",[TempValueMaskBitLength]),
 	
 	case lists:keyfind(ADCRes, 1, ?CONFIGURATION_REG_ADC_RESOLUTION_BIT_LENGHT) of
 		{ADCRes, ADCResBitLength} ->
@@ -1055,14 +1051,14 @@ compute_temperature(ADCRes, RegisterLength, TempSign, TempSignMask, TempValue, T
 			Code = TempValue bsr ShiftRight,
 			case lists:keysearch(ADCRes, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_KEYPOS, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
 				{value, {ADCRes, Multiplier, _Label}} ->
-					?DO_INFO("Compute temperature value", [
-														   {adcRes, ADCRes}, 
-														   {tempSign, TempSign}, 
-														   {origTempValue, TempValue}, 
-														   {shiftRight, ShiftRight},
-														   {tempValue2, Code},
-														   {multiplier, Multiplier}
-														  ]),
+%% 					?DO_INFO("Compute temperature value", [
+%% 														   {adcRes, ADCRes}, 
+%% 														   {tempSign, TempSign}, 
+%% 														   {origTempValue, TempValue}, 
+%% 														   {shiftRight, ShiftRight},
+%% 														   {tempValue2, Code},
+%% 														   {multiplier, Multiplier}
+%% 														  ]),
 					Ta = (Code * Multiplier),
 					
 					case TempSign of
@@ -1081,15 +1077,4 @@ compute_temperature(ADCRes, RegisterLength, TempSign, TempSignMask, TempValue, T
 		false ->
 			{error, {"Invalid ADC resolution", ADCRes}}
 	end.
-
-%% %% ====================================================================
-%% %% @doc
-%% %% Read a register in the device
-%% -spec read(HwAddress :: integer(), 
-%% 		   RegAddress :: integer(),
-%% 		   NumberOfByteToRead :: integer()) -> {ok, int_data()} | {error, term()}.
-%% %% @end
-%% %% ====================================================================
-%% read(HwAddress, RegAddr, NumberOfByteToRead) ->
-%% 	dev_common:i2c_read(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, RegAddr, NumberOfByteToRead).
 
