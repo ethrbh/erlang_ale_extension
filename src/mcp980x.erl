@@ -23,7 +23,7 @@
 		 get_temperature_hysteresis_register/0
 		 ]).
 -export([
-		 get_temperature/0
+		 get_temperature/0, get_temperature_str/0
 		 ]).
 -export([
 		 conversion_mode_continous/0,
@@ -144,18 +144,34 @@ set_temperature_hysteresis_register(TempHystValue) ->
 %% ====================================================================
 %% @doc
 %% Get Temperature Hysteresis register
-%% @end
 -spec get_temperature_hysteresis_register() -> {ok, TemperatureLimit :: float()} | {error, term()}.
+%% @end
 %% ====================================================================
 get_temperature_hysteresis_register() ->
 	do_gen_server_call({get_temperature_hysteresis_register}).
 
 %% ====================================================================
+%% @doc
 %% Read measured temperature value in the device.
 -spec get_temperature() -> {ok, TemperatureValue :: float()} | {error, term()}.
+%% @end
 %% ====================================================================
 get_temperature() ->
 	do_gen_server_call({get_temperature}).
+
+%% ====================================================================
+%% @doc
+%% Read measured temperature value in the device and gives the value in string.
+-spec get_temperature_str() -> {ok, TemperatureValue :: string()}.
+%% @end
+%% ====================================================================
+get_temperature_str() ->
+	case get_temperature() of
+		{ok, T} ->
+			{ok, erlang:float_to_list(T, [{decimals, 4}, compact])};
+		{error, _ER} ->
+			{ok, "N/A"}
+	end.
 
 %% ====================================================================
 %% @doc
@@ -356,6 +372,43 @@ get_adc_resolution_value(AdcResLabel) ->
 %% ====================================================================
 init([HwAddress]) ->
 	%% Configure default setup in the device.
+	DefCfgReg = #mcp980xConfigReg{},
+	R1 = do_set_oneshot_cfg_bit(HwAddress, (DefCfgReg#mcp980xConfigReg.bit_OneShot)#bitParam.defValue),
+	R2 = do_set_adcres_cfg_bit(HwAddress,  (DefCfgReg#mcp980xConfigReg.bit_AdcResolution)#bitParam.defValue),
+	R3 = do_set_faultqueue_cfg_bit(HwAddress,  (DefCfgReg#mcp980xConfigReg.bit_FaultQueue)#bitParam.defValue),
+	R4 = do_set_alertpol_cfg_bit(HwAddress,  (DefCfgReg#mcp980xConfigReg.bit_AlertPol)#bitParam.defValue),
+	R5 = do_set_mode_cfg_bit(HwAddress,  (DefCfgReg#mcp980xConfigReg.bit_Mode)#bitParam.defValue),
+	R6 = do_set_shutdown_cfg_bit(HwAddress,  (DefCfgReg#mcp980xConfigReg.bit_ShutDown)#bitParam.defValue),
+	
+	DefTemperatureHystReg = #mcp980xTemperatureHystReg{},
+	DefTemperatureHyst = case (DefTemperatureHystReg#mcp980xTemperatureHystReg.bit_Sign)#bitParam.defValue of
+							 ?MCP980x_TEMP_SIGN_MINUS ->
+								 ((-1) * (DefTemperatureHystReg#mcp980xTemperatureHystReg.bit_TempValue)#bitParam.defValue);
+							 
+							 ?MCP980x_TEMP_SIGN_PLUS ->
+								 (DefTemperatureHystReg#mcp980xTemperatureHystReg.bit_TempValue)#bitParam.defValue
+						 end,
+	R7 = do_set_temperature_hysteresis_register(HwAddress, DefTemperatureHyst),
+
+	DefTemperatureLimitSetReg = #mcp980xTemperatureLimitSetReg{},
+	DefTemperatureLimitSet = case (DefTemperatureLimitSetReg#mcp980xTemperatureLimitSetReg.bit_Sign)#bitParam.defValue of
+								 ?MCP980x_TEMP_SIGN_MINUS ->
+									 ((-1) * (DefTemperatureLimitSetReg#mcp980xTemperatureLimitSetReg.bit_TempValue)#bitParam.defValue);
+								 
+								 ?MCP980x_TEMP_SIGN_PLUS ->
+									 (DefTemperatureLimitSetReg#mcp980xTemperatureLimitSetReg.bit_TempValue)#bitParam.defValue
+							 end,
+	R8 = do_set_temperature_limit_set_register(HwAddress, DefTemperatureLimitSet),
+
+	case lists:usort([R1, R2, R3, R4, R5, R6, R7, R8]) of
+		[ok] ->
+			?DO_INFO("Temperature device has been configured with default value.",[]),
+			ok;
+		ER ->
+			%% At least one bit was not able t oset
+			?DO_ERR("Failed to configure temperature sensor with default value.",
+					[{error, ER}])
+	end,
 	
     {ok, #state{hwAddress = HwAddress}}.
 

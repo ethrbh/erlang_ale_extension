@@ -116,12 +116,12 @@
 		{
 		 address = ?REG_POINTER_CONFIGURATION_REG,
 		 length = 1,
-         bit_OneShot = #bitParam{value = ?CONFIGURATION_REG_ONE_SHOT, mask = ?CONFIGURATION_REG_ONE_SHOT_MASK, doshiftvalue = true},
-		 bit_AdcResolution = #bitParam{value = ?CONFIGURATION_REG_ADC_RESOLUTION, mask = ?CONFIGURATION_REG_ADC_RESOLUTION_MASK, doshiftvalue = true},
-         bit_FaultQueue = #bitParam{value = ?CONFIGURATION_REG_FAULT_QUEUE, mask = ?CONFIGURATION_REG_FAULT_QUEUE_MASK, doshiftvalue = true},
-		 bit_AlertPol = #bitParam{value = ?CONFIGURATION_REG_ALERT_POL, mask = ?CONFIGURATION_REG_ALERT_POL_MASK, doshiftvalue = true},
-		 bit_Mode = #bitParam{value = ?CONFIGURATION_REG_MODE, mask = ?CONFIGURATION_REG_MODE_MASK, doshiftvalue = true},
-		 bit_ShutDown = #bitParam{value = ?CONFIGURATION_REG_SHUTDOWN, mask = ?CONFIGURATION_REG_SHUTDOWN_MASK, doshiftvalue = true}
+         bit_OneShot = #bitParam{value = ?CONFIGURATION_REG_ONE_SHOT, defValue = ?CONFIGURATION_REG_ONE_SHOT_DIS, mask = ?CONFIGURATION_REG_ONE_SHOT_MASK, doshiftvalue = true},
+		 bit_AdcResolution = #bitParam{value = ?CONFIGURATION_REG_ADC_RESOLUTION, defValue = ?CONFIGURATION_REG_ADC_RESOLUTION_9BIT_05C, mask = ?CONFIGURATION_REG_ADC_RESOLUTION_MASK, doshiftvalue = true},
+         bit_FaultQueue = #bitParam{value = ?CONFIGURATION_REG_FAULT_QUEUE, defValue = 1, mask = ?CONFIGURATION_REG_FAULT_QUEUE_MASK, doshiftvalue = true},
+		 bit_AlertPol = #bitParam{value = ?CONFIGURATION_REG_ALERT_POL, defValue = ?CONFIGURATION_REG_ALERT_POL_ACT_HIGH, mask = ?CONFIGURATION_REG_ALERT_POL_MASK, doshiftvalue = true},
+		 bit_Mode = #bitParam{value = ?CONFIGURATION_REG_MODE, defValue = ?CONFIGURATION_REG_COMP_MODE, mask = ?CONFIGURATION_REG_MODE_MASK, doshiftvalue = true},
+		 bit_ShutDown = #bitParam{value = ?CONFIGURATION_REG_SHUTDOWN, defValue = ?CONFIGURATION_REG_SHUTDOWN_DIS, mask = ?CONFIGURATION_REG_SHUTDOWN_MASK, doshiftvalue = true}
 		}).
 
 -record(mcp980xAmbientTemperatureReg, 
@@ -136,8 +136,8 @@
 		{
 		 address = ?REG_POINTER_TEMPERATURE_HYST_REG,
 		 length = 2,
-		 bit_Sign = #bitParam{value = {?TEMPERATURE_VAL_POSITIVE, ?TEMPERATURE_VAL_NEGATIVE}, mask = 2#1000000000000000, doshiftvalue = true},
-		 bit_TempValue =  #bitParam{value = {0,511}, mask = 2#0111111110000000, doshiftvalue = true}
+		 bit_Sign = #bitParam{value = {?TEMPERATURE_VAL_POSITIVE, ?TEMPERATURE_VAL_NEGATIVE}, defValue = ?TEMPERATURE_VAL_POSITIVE, mask = 2#1000000000000000, doshiftvalue = true},
+		 bit_TempValue =  #bitParam{value = {0,511}, defValue = 35, mask = 2#0111111110000000, doshiftvalue = true}
 		}).
 
 -define(MCP980x_TEMP_LIMIT_SET_INT_VAL_MIN, 0).
@@ -148,19 +148,19 @@
 		{
 		 address = ?REG_POINTER_TEMPERATURE_LIMIT_REG,
 		 length = 2,
-		 bit_Sign = #bitParam{value = {?TEMPERATURE_VAL_POSITIVE, ?TEMPERATURE_VAL_NEGATIVE}, mask = 2#1000000000000000, doshiftvalue = true},
-		 bit_TempValue =  #bitParam{value = {0,511}, mask = 2#0111111110000000, doshiftvalue = true}
+		 bit_Sign = #bitParam{value = {?TEMPERATURE_VAL_POSITIVE, ?TEMPERATURE_VAL_NEGATIVE}, defValue = ?TEMPERATURE_VAL_POSITIVE, mask = 2#1000000000000000, doshiftvalue = true},
+		 bit_TempValue =  #bitParam{value = {0,511}, defValue = 40, mask = 2#0111111110000000, doshiftvalue = true}
 		}).
 
--define(DEF_TEMPERATURE_SETTING, [
-								  {mcp980xConfigReg, #mcp980xConfigReg{bit_OneShot = ?CONFIGURATION_REG_ONE_SHOT_DIS,
-																	   bit_AdcResolution = ?CONFIGURATION_REG_ADC_RESOLUTION_9BIT_05C,
-																	   bit_FaultQueue = 1,
-																	   bit_AlertPol = ?CONFIGURATION_REG_ALERT_POL_ACT_HIGH,
-																	   bit_Mode = ?CONFIGURATION_REG_COMP_MODE,
-																	   bit_ShutDown = ?CONFIGURATION_REG_SHUTDOWN_DIS}},
-								  {temperatureLimiSet, 80},	%% 80 C
-								  {temperatureHyst, 75}		%% 75 C
-								  ]).
+%% -define(DEF_TEMPERATURE_SETTING, [
+%% 								  {mcp980xConfigReg, #mcp980xConfigReg{bit_OneShot = ?CONFIGURATION_REG_ONE_SHOT_DIS,
+%% 																	   bit_AdcResolution = ?CONFIGURATION_REG_ADC_RESOLUTION_9BIT_05C,
+%% 																	   bit_FaultQueue = 1,
+%% 																	   bit_AlertPol = ?CONFIGURATION_REG_ALERT_POL_ACT_HIGH,
+%% 																	   bit_Mode = ?CONFIGURATION_REG_COMP_MODE,
+%% 																	   bit_ShutDown = ?CONFIGURATION_REG_SHUTDOWN_DIS}},
+%% 								  {temperatureLimiSet, 80},	%% 80 C
+%% 								  {temperatureHyst, 75}		%% 75 C
+%% 								  ]).
 
 -endif.

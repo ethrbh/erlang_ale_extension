@@ -17,6 +17,7 @@
 %% where bit_parameter_record
 -record(bitParam, {	
 					value,			%% {Min,Max} | [ListOfPossibleValues]
+					defValue,		%% the default value. It is NOT mandatory to be set.
 					mask,			%% mask of the bit in the byte
 					doshiftvalue	%% boolean
 									%% If value is tuple, it must be true. This means the new value of bit must shift 
