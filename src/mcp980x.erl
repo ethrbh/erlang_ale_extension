@@ -35,24 +35,27 @@
 		 get_shutdown_cfg_bit/0,
 		 set_shutdown_cfg_bit/1,
 		 
+		 get_mode_cfg_labels/0, get_mode_cfg_label/1,
+		 get_mode_cfg_bit/1,
 		 get_mode_cfg_bit/0,
 		 set_mode_cfg_bit/1,
 		 
+		 get_alertpol_cfg_labels/0, get_alertpol_cfg_label/1,
+		 get_alertpol_cfg_bit/1,
 		 get_alertpol_cfg_bit/0,
 		 set_alertpol_cfg_bit/1,
 		 
+		 get_faultqueue_cfg_list/0,
 		 get_faultqueue_cfg_bit/0,
 		 set_faultqueue_cfg_bit/1,
 		 
+		 get_adcres_cfg_labels/0, get_adcres_cfg_label/1, 
+		 get_adcres_cfg_bit/1,
 		 get_adcres_cfg_bit/0,
 		 set_adcres_cfg_bit/1,
 		 
 		 get_oneshot_cfg_bit/0,
 		 set_oneshot_cfg_bit/1
-		 ]).
-
--export([
-		 get_adcres_labels/0, get_adcres_label/1 
 		 ]).
 
 %% ====================================================================
@@ -127,7 +130,7 @@ set_temperature_limit_set_register(TemperatureLimit) ->
 %% Get Temperature Limit-Set register
 %% @end
 -spec get_temperature_limit_set_register() -> 
-		  {ok, TempSign :: temperature_sing()} | {error, term()}.
+		  {ok, TemperatureLimit :: float()} | {error, term()}.
 %% ====================================================================
 get_temperature_limit_set_register() ->
 	do_gen_server_call({get_temperature_limit_set_registert}).
@@ -227,6 +230,46 @@ get_shutdown_cfg_bit() ->
 set_shutdown_cfg_bit(ShutdownCfgBit) ->
 	do_gen_server_call({set_shutdown_cfg_bit, ShutdownCfgBit}).
 
+
+%% ====================================================================
+%% @doc
+%% Gives the possible Modes as string labels.
+-spec get_mode_cfg_labels() -> {ok, list(string())}.
+%% @end
+%% ====================================================================
+get_mode_cfg_labels() ->
+	{ok, [?CONFIGURATION_REG_INT_MODE_LBL, ?CONFIGURATION_REG_COMP_MODE_LBL]}.
+
+%% ====================================================================
+%% @doc
+%% Gives the Modes by its name.
+-spec get_mode_cfg_label(ModeCfgBit :: mode_cfg_bit()) -> {ok, string()} | {error, term()}.
+%% @end
+%% ====================================================================
+get_mode_cfg_label(ModeCfgBit) ->
+	case ModeCfgBit of
+		?CONFIGURATION_REG_INT_MODE ->
+			{ok, ?CONFIGURATION_REG_INT_MODE_LBL};
+		?CONFIGURATION_REG_COMP_MODE ->
+			{ok, ?CONFIGURATION_REG_COMP_MODE_LBL};
+		_-> {error, {"Invalid Mode", ModeCfgBit}}
+	end.
+
+%% ====================================================================
+%% @doc
+%% Get the Mode by its name.
+-spec get_mode_cfg_bit(string()) -> {ok, ModeCfgBit :: mode_cfg_bit()} | {error, term()}.
+%% @end
+%% ====================================================================
+get_mode_cfg_bit(ModeLbl) ->
+	case ModeLbl of
+		?CONFIGURATION_REG_INT_MODE_LBL ->
+			{ok, ?CONFIGURATION_REG_INT_MODE};
+		?CONFIGURATION_REG_COMP_MODE_LBL ->
+			{ok, ?CONFIGURATION_REG_COMP_MODE};
+		_-> {error, {"Invalid Mode", ModeLbl}}
+	end.
+
 %% ====================================================================
 %% @doc
 %% Read Mode cfg bit in the device.
@@ -247,6 +290,45 @@ set_mode_cfg_bit(ModeCfgBit) ->
 
 %% ====================================================================
 %% @doc
+%% Gives the list of Alert Polarity of the device.
+-spec get_alertpol_cfg_labels() -> {ok, list(string())}.
+%% @end
+%% ====================================================================
+get_alertpol_cfg_labels() ->
+	{ok, [?CONFIGURATION_REG_ALERT_POL_ACT_HIGH_LBL, ?CONFIGURATION_REG_ALERT_POL_ACT_LOW_LBL]}.
+
+%% ====================================================================
+%% @doc
+%% Gives the name of the Alert Polarity of the device.
+-spec get_alertpol_cfg_label(AlertPolCfgBit :: alertpol_cfg_bit()) -> {ok, string()} | {error, term()}.
+%% @end
+%% ====================================================================
+get_alertpol_cfg_label(AlertPolCfgBit) ->
+	case AlertPolCfgBit of
+		?CONFIGURATION_REG_ALERT_POL_ACT_HIGH ->
+			{ok, ?CONFIGURATION_REG_ALERT_POL_ACT_HIGH_LBL};
+		?CONFIGURATION_REG_ALERT_POL_ACT_LOW ->
+			{ok, ?CONFIGURATION_REG_ALERT_POL_ACT_LOW_LBL};
+		_-> {error, {"Invalid Alert Polarity", AlertPolCfgBit}}
+	end.
+
+%% ====================================================================
+%% @doc
+%% Get the Alert Polarity cfg label by its bit value.
+-spec get_alertpol_cfg_bit(string()) -> {ok, AlertPolCfgBit :: alertpol_cfg_bit()} | {error, term()}.
+%% @end
+%% ====================================================================
+get_alertpol_cfg_bit(AlertPolCfgBitLbl) ->
+	case AlertPolCfgBitLbl of
+		?CONFIGURATION_REG_ALERT_POL_ACT_HIGH_LBL ->
+			{ok, ?CONFIGURATION_REG_ALERT_POL_ACT_HIGH};
+		?CONFIGURATION_REG_ALERT_POL_ACT_LOW_LBL ->
+			{ok, ?CONFIGURATION_REG_ALERT_POL_ACT_LOW};
+		_-> {error, {"Invalid Alert Polarity", AlertPolCfgBitLbl}}
+	end.
+	
+%% ====================================================================
+%% @doc
 %% Read Alert Polarity cfg bit in the device.
 -spec get_alertpol_cfg_bit() -> {ok, AlertPolCfgBit :: alertpol_cfg_bit()} | {error, term()}.
 %% @end
@@ -265,6 +347,15 @@ set_alertpol_cfg_bit(AlertPolCfgBit) ->
 
 %% ====================================================================
 %% @doc
+%% Gives the list of the available Fault Queue
+-spec get_faultqueue_cfg_list() -> {ok, list(faultqueue_cfg_bit())}.
+%% @end
+%% ====================================================================
+get_faultqueue_cfg_list() ->
+	{ok, ?CONFIGURATION_REG_FAULT_QUEUE}.
+
+%% ====================================================================
+%% @doc
 %% Read Fault Queue cfg bit in the device.
 -spec get_faultqueue_cfg_bit() -> {ok, FaultQueueCfgBit :: faultqueue_cfg_bit()} | {error, term()}.
 %% @end
@@ -280,6 +371,46 @@ get_faultqueue_cfg_bit() ->
 %% ====================================================================
 set_faultqueue_cfg_bit(FaultQueueCfgBit) ->
 	do_gen_server_call({set_faultqueue_cfg_bit, FaultQueueCfgBit}).
+
+%% ====================================================================
+%% @doc
+%% Gives the posible ADC resolutions as text label 
+-spec get_adcres_cfg_labels() -> {ok, list(string())} | {error, term()}.
+%% @end
+%% ====================================================================
+get_adcres_cfg_labels() ->
+	L = [begin
+			 erlang:element(?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_LABEL_KEYPOS, AdcValue)
+		 end || AdcValue <- ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST],
+	{ok, L}.
+
+%% ====================================================================
+%% @doc
+%% Gives the label of the ADC resolution
+-spec get_adcres_cfg_label(adcres_cfg_bit()) -> {ok, string()} | {error, term()}.
+%% @end
+%% ====================================================================
+get_adcres_cfg_label(ADCRes) ->
+	case lists:keysearch(ADCRes, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_KEYPOS, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
+		{value, {ADCRes, _Multiplier, AdcResLabel}} ->
+			{ok, AdcResLabel};
+		_->
+			{error, "Invalid ADC resolution"}
+	end.
+
+%% ====================================================================
+%% @doc
+%% Gives the float value of the ADC resolution bit by its label 
+-spec get_adcres_cfg_bit(string()) -> {ok, adcres_cfg_bit()} | {error, term()}.
+%% @end
+%% ====================================================================
+get_adcres_cfg_bit(AdcResLabel) ->
+	case lists:keysearch(AdcResLabel, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_LABEL_KEYPOS, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
+		{value, {ADCRes, _Multiplier, AdcResLabel}} ->
+			{ok, ADCRes};
+		_->
+			{error, "Invalid ADC resolution"}
+	end.
 
 %% ====================================================================
 %% @doc
@@ -317,46 +448,6 @@ get_oneshot_cfg_bit() ->
 set_oneshot_cfg_bit(OneShotCfgBit) ->
 	do_gen_server_call({set_oneshot_cfg_bit, OneShotCfgBit}).
 
-%% ====================================================================
-%% @doc
-%% Gives the posible ADC resolutions as text label 
--spec get_adcres_labels() -> {ok, list(string())} | {error, term()}.
-%% @end
-%% ====================================================================
-get_adcres_labels() ->
-	L = [begin
-			 erlang:element(?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_LABEL_KEYPOS, AdcValue)
-		 end || AdcValue <- ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST],
-	{ok, L}.
-
-%% ====================================================================
-%% @doc
-%% Gives the label of the ADC resolution
--spec get_adcres_label(adcres_cfg_bit()) -> {ok, string()} | {error, term()}.
-%% @end
-%% ====================================================================
-get_adcres_label(ADCRes) ->
-	case lists:keysearch(ADCRes, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_KEYPOS, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
-		{value, {ADCRes, _Multiplier, AdcResLabel}} ->
-			{ok, AdcResLabel};
-		_->
-			{error, "Invalid ADC resolution"}
-	end.
-	
-
-%% ====================================================================
-%% @doc
-%% Gives the float value of the ADC resolutio bit by its label 
--spec get_adc_resolution_value(string()) -> {ok, adcres_cfg_bit()} | {error, term()}.
-%% @end
-%% ====================================================================
-get_adc_resolution_value(AdcResLabel) ->
-	case lists:keysearch(AdcResLabel, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_LABEL_KEYPOS, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
-		{value, {ADCRes, _Multiplier, AdcResLabel}} ->
-			{ok, ADCRes};
-		_->
-			{error, "Invalid ADC resolution"}
-	end.
 
 %% init/1
 %% ====================================================================
@@ -911,7 +1002,7 @@ do_get_adcres_cfg_bit(HwAddress) ->
 %% @end
 %% ====================================================================
 do_set_adcres_cfg_bit(HwAddress, AdcResolutionCfgBitLabel) when is_list(AdcResolutionCfgBitLabel)->
-	case get_adc_resolution_value(AdcResolutionCfgBitLabel) of
+	case get_adcres_cfg_bit(AdcResolutionCfgBitLabel) of
 		{ok, AdcResolutionCfgBit} ->
 			do_set_adcres_cfg_bit(HwAddress, AdcResolutionCfgBit);
 		ER -> ER
