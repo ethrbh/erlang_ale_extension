@@ -45,8 +45,9 @@
 		 get_alertpol_cfg_bit/0,
 		 set_alertpol_cfg_bit/1,
 		 
-		 get_faultqueue_cfg_list/0,
-		 get_faultqueue_cfg_bit/0,
+		 get_faultqueue_cfg_labels/0, get_faultqueue_cfg_label/1,
+		 get_faultqueue_cfg_bit/1,
+		 get_faultqueue_cfg_bit/0, 
 		 set_faultqueue_cfg_bit/1,
 		 
 		 get_adcres_cfg_labels/0, get_adcres_cfg_label/1, 
@@ -348,11 +349,42 @@ set_alertpol_cfg_bit(AlertPolCfgBit) ->
 %% ====================================================================
 %% @doc
 %% Gives the list of the available Fault Queue
--spec get_faultqueue_cfg_list() -> {ok, list(faultqueue_cfg_bit())}.
+-spec get_faultqueue_cfg_labels() -> {ok, list(string())}.
 %% @end
 %% ====================================================================
-get_faultqueue_cfg_list() ->
-	{ok, ?CONFIGURATION_REG_FAULT_QUEUE}.
+get_faultqueue_cfg_labels() ->
+	L = [begin
+			 erlang:element(?CONFIGURATION_REG_FAULT_QUEUE_LABEL_KEYPOS, FQValue)
+		 end || FQValue <- ?CONFIGURATION_REG_FAULT_QUEUE_LIST],
+	{ok, L}.
+
+%% ====================================================================
+%% @doc
+%% Gives the integer id of FQ by its label
+-spec get_faultqueue_cfg_label(faultqueue_cfg_bit()) -> {ok, string()} | {error, term()}.
+%% @end
+%% ====================================================================
+get_faultqueue_cfg_label(FQ) ->
+	case lists:keysearch(FQ, ?CONFIGURATION_REG_FAULT_QUEUE_ID_KEYPOS, ?CONFIGURATION_REG_FAULT_QUEUE_LIST) of
+		{value, {FQ, FQLabel}} ->
+			{ok, FQLabel};
+		_->
+			{error, "Invalid Fault Queue"}
+	end.
+
+%% ====================================================================
+%% @doc
+%% Get the FQ Id by its label.
+-spec get_faultqueue_cfg_bit(string()) -> {ok, FaultQueueCfgBit :: faultqueue_cfg_bit()} | {error, term()}.
+%% @end
+%% ====================================================================
+get_faultqueue_cfg_bit(FQLabel) ->
+	case lists:keysearch(FQLabel, ?CONFIGURATION_REG_FAULT_QUEUE_LABEL_KEYPOS, ?CONFIGURATION_REG_FAULT_QUEUE_LIST) of
+		{value, {FQ, FQLabel}} ->
+			{ok, FQ};
+		_->
+			{error, "Invalid Fault Queue"}
+	end.
 
 %% ====================================================================
 %% @doc
@@ -391,7 +423,7 @@ get_adcres_cfg_labels() ->
 %% @end
 %% ====================================================================
 get_adcres_cfg_label(ADCRes) ->
-	case lists:keysearch(ADCRes, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_KEYPOS, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
+	case lists:keysearch(ADCRes, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_ID_KEYPOS, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
 		{value, {ADCRes, _Multiplier, AdcResLabel}} ->
 			{ok, AdcResLabel};
 		_->
@@ -743,7 +775,7 @@ do_set_temperature_limit_register(HwAddress, TemperatureLimit, DataLengthIdx, Re
 	%% To compute these values can be done by this formula: Code = TemperatureLimit / Multiplier_of_9bit_resolution.
 	%% If no reminder of the result of division, the given TemperatureLimit value is valid, oherwise it does not.
 	ADCRes = ?CONFIGURATION_REG_ADC_RESOLUTION_9BIT_05C,
-	case lists:keysearch(ADCRes, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_KEYPOS, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
+	case lists:keysearch(ADCRes, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_ID_KEYPOS, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
 		{value, {ADCRes, Multiplier, _Label}} ->
 			Code = TemperatureLimit / Multiplier,
 			
@@ -1140,16 +1172,8 @@ compute_temperature(ADCRes, RegisterLength, TempSign, TempSignMask, TempValue, T
 			
 			%% Shift right the register value with N bit. The number of bit depends of the ADC res. value.
 			Code = TempValue bsr ShiftRight,
-			case lists:keysearch(ADCRes, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_KEYPOS, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
+			case lists:keysearch(ADCRes, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_ID_KEYPOS, ?CONFIGURATION_REG_ADC_RESOLUTION_TEMP_VALUE_LIST) of
 				{value, {ADCRes, Multiplier, _Label}} ->
-%% 					?DO_INFO("Compute temperature value", [
-%% 														   {adcRes, ADCRes}, 
-%% 														   {tempSign, TempSign}, 
-%% 														   {origTempValue, TempValue}, 
-%% 														   {shiftRight, ShiftRight},
-%% 														   {tempValue2, Code},
-%% 														   {multiplier, Multiplier}
-%% 														  ]),
 					Ta = (Code * Multiplier),
 					
 					case TempSign of
