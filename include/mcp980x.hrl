@@ -142,7 +142,7 @@
 		 length = 1,
          bit_OneShot = #bitParam{value = ?CONFIGURATION_REG_ONE_SHOT, defValue = ?CONFIGURATION_REG_ONE_SHOT_DIS, mask = ?CONFIGURATION_REG_ONE_SHOT_MASK, doshiftvalue = true},
 		 bit_AdcResolution = #bitParam{value = ?CONFIGURATION_REG_ADC_RESOLUTION, defValue = ?CONFIGURATION_REG_ADC_RESOLUTION_9BIT_05C, mask = ?CONFIGURATION_REG_ADC_RESOLUTION_MASK, doshiftvalue = true},
-         bit_FaultQueue = #bitParam{value = ?CONFIGURATION_REG_FAULT_QUEUE, defValue = 1, mask = ?CONFIGURATION_REG_FAULT_QUEUE_MASK, doshiftvalue = true},
+         bit_FaultQueue = #bitParam{value = ?CONFIGURATION_REG_FAULT_QUEUE, defValue = ?CONFIGURATION_REG_FAULT_QUEUE_2, mask = ?CONFIGURATION_REG_FAULT_QUEUE_MASK, doshiftvalue = true},
 		 bit_AlertPol = #bitParam{value = ?CONFIGURATION_REG_ALERT_POL, defValue = ?CONFIGURATION_REG_ALERT_POL_ACT_HIGH, mask = ?CONFIGURATION_REG_ALERT_POL_MASK, doshiftvalue = true},
 		 bit_Mode = #bitParam{value = ?CONFIGURATION_REG_MODE, defValue = ?CONFIGURATION_REG_COMP_MODE, mask = ?CONFIGURATION_REG_MODE_MASK, doshiftvalue = true},
 		 bit_ShutDown = #bitParam{value = ?CONFIGURATION_REG_SHUTDOWN, defValue = ?CONFIGURATION_REG_SHUTDOWN_DIS, mask = ?CONFIGURATION_REG_SHUTDOWN_MASK, doshiftvalue = true}

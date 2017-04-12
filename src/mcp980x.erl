@@ -12,7 +12,7 @@
 %% ====================================================================
 -export([test/0]).
 
--export([start/1, stop/0]).
+-export([start/1, start/7, start/9, stop/0]).
 
 -export([
  		 set_temperature_limit_set_register/1,
@@ -56,7 +56,9 @@
 		 set_adcres_cfg_bit/1,
 		 
 		 get_oneshot_cfg_bit/0,
-		 set_oneshot_cfg_bit/1
+		 set_oneshot_cfg_bit/1,
+		 
+		 get_default_cfg/0
 		 ]).
 
 %% ====================================================================
@@ -83,7 +85,6 @@ test() ->
 	io:format("@@@ mcp980xAmbientTemperatureReg - ~p~n",[#mcp980xAmbientTemperatureReg{}]),
 	io:format("@@@ mcp980xTemperatureHystReg - ~p~n",[#mcp980xTemperatureHystReg{}]),
 	io:format("@@@ mcp980xTemperatureLimitSetReg - ~p~n",[#mcp980xTemperatureLimitSetReg{}]).
-	
 
 %% ====================================================================
 %% @doc
@@ -98,6 +99,50 @@ start(HwAddress) ->
 			{ok, Pid};
 		_->	%% The supervisor does not started yet.
 			gen_server:start({local, ?SERVER}, ?MODULE, [HwAddress], [{timeout, 5000}]) 
+	end.
+
+%% ====================================================================
+%% @doc
+%% Start server
+%% @end
+-spec start(HwAddress :: integer(),
+			AdcRes :: adcres_cfg_bit(),
+			FaultQueue :: faultqueue_cfg_bit(),
+			AlertPol :: alertpol_cfg_bit(),
+			Mode :: mode_cfg_bit(),
+			TempLimit :: float(),
+			TempHyst :: float()) -> {ok, pid()} | {error, term()}.
+%% ====================================================================
+start(HwAddress, AdcRes, FaultQueue, AlertPol, Mode, TempLimit, TempHyst) ->
+	case whereis(?SERVER) of
+		Pid when is_pid(Pid) ->
+			%% Already started
+			{ok, Pid};
+		_->	%% The supervisor does not started yet.
+			gen_server:start({local, ?SERVER}, ?MODULE, [HwAddress, AdcRes, FaultQueue, AlertPol, Mode, TempLimit, TempHyst], [{timeout, 5000}]) 
+	end.
+
+%% ====================================================================
+%% @doc
+%% Start server
+%% @end
+-spec start(HwAddress :: integer(),
+			OneShot :: oneshot_cfg_bit(),
+			AdcRes :: adcres_cfg_bit(),
+			FaultQueue :: faultqueue_cfg_bit(),
+			AlertPol :: alertpol_cfg_bit(),
+			Mode :: mode_cfg_bit(),
+			Shutdown :: shutdown_cfg_bit(),
+			TempLimit :: float(),
+			TempHyst :: float()) -> {ok, pid()} | {error, term()}.
+%% ====================================================================
+start(HwAddress, OneShot, AdcRes, FaultQueue, AlertPol, Mode, Shutdown, TempLimit, TempHyst) ->
+	case whereis(?SERVER) of
+		Pid when is_pid(Pid) ->
+			%% Already started
+			{ok, Pid};
+		_->	%% The supervisor does not started yet.
+			gen_server:start({local, ?SERVER}, ?MODULE, [HwAddress, OneShot, AdcRes, FaultQueue, AlertPol, Mode, Shutdown, TempLimit, TempHyst], [{timeout, 5000}]) 
 	end.
 
 %% ====================================================================
@@ -480,6 +525,17 @@ get_oneshot_cfg_bit() ->
 set_oneshot_cfg_bit(OneShotCfgBit) ->
 	do_gen_server_call({set_oneshot_cfg_bit, OneShotCfgBit}).
 
+%% ====================================================================
+%% @doc
+%% Gives the default configuration record, what contains the default values of
+%% each attributes.
+-spec get_default_cfg() -> {ok, tuple()}.
+%% @end
+%% ====================================================================
+get_default_cfg() ->
+	DefCfgReg = #mcp980xConfigReg{},
+	{ok, DefCfgReg}.
+
 
 %% init/1
 %% ====================================================================
@@ -494,34 +550,51 @@ set_oneshot_cfg_bit(OneShotCfgBit) ->
 	Timeout :: non_neg_integer() | infinity.
 %% ====================================================================
 init([HwAddress]) ->
-	%% Configure default setup in the device.
 	DefCfgReg = #mcp980xConfigReg{},
-	R1 = do_set_oneshot_cfg_bit(HwAddress, (DefCfgReg#mcp980xConfigReg.bit_OneShot)#bitParam.defValue),
-	R2 = do_set_adcres_cfg_bit(HwAddress,  (DefCfgReg#mcp980xConfigReg.bit_AdcResolution)#bitParam.defValue),
-	R3 = do_set_faultqueue_cfg_bit(HwAddress,  (DefCfgReg#mcp980xConfigReg.bit_FaultQueue)#bitParam.defValue),
-	R4 = do_set_alertpol_cfg_bit(HwAddress,  (DefCfgReg#mcp980xConfigReg.bit_AlertPol)#bitParam.defValue),
-	R5 = do_set_mode_cfg_bit(HwAddress,  (DefCfgReg#mcp980xConfigReg.bit_Mode)#bitParam.defValue),
-	R6 = do_set_shutdown_cfg_bit(HwAddress,  (DefCfgReg#mcp980xConfigReg.bit_ShutDown)#bitParam.defValue),
+	
+	OneShot = (DefCfgReg#mcp980xConfigReg.bit_OneShot)#bitParam.defValue,
+	AdcRes = (DefCfgReg#mcp980xConfigReg.bit_AdcResolution)#bitParam.defValue,
+	FaultQueue = (DefCfgReg#mcp980xConfigReg.bit_FaultQueue)#bitParam.defValue,
+	AlertPol = (DefCfgReg#mcp980xConfigReg.bit_AlertPol)#bitParam.defValue,
+	Mode = (DefCfgReg#mcp980xConfigReg.bit_Mode)#bitParam.defValue,
+	Shutdown = (DefCfgReg#mcp980xConfigReg.bit_ShutDown)#bitParam.defValue,
 	
 	DefTemperatureHystReg = #mcp980xTemperatureHystReg{},
-	DefTemperatureHyst = case (DefTemperatureHystReg#mcp980xTemperatureHystReg.bit_Sign)#bitParam.defValue of
-							 ?MCP980x_TEMP_SIGN_MINUS ->
-								 ((-1) * (DefTemperatureHystReg#mcp980xTemperatureHystReg.bit_TempValue)#bitParam.defValue);
-							 
-							 ?MCP980x_TEMP_SIGN_PLUS ->
-								 (DefTemperatureHystReg#mcp980xTemperatureHystReg.bit_TempValue)#bitParam.defValue
-						 end,
-	R7 = do_set_temperature_hysteresis_register(HwAddress, DefTemperatureHyst),
-
+	TempHyst = case (DefTemperatureHystReg#mcp980xTemperatureHystReg.bit_Sign)#bitParam.defValue of
+				   ?MCP980x_TEMP_SIGN_MINUS ->
+					   ((-1) * (DefTemperatureHystReg#mcp980xTemperatureHystReg.bit_TempValue)#bitParam.defValue);
+				   
+				   ?MCP980x_TEMP_SIGN_PLUS ->
+					   (DefTemperatureHystReg#mcp980xTemperatureHystReg.bit_TempValue)#bitParam.defValue
+			   end,
+	
 	DefTemperatureLimitSetReg = #mcp980xTemperatureLimitSetReg{},
-	DefTemperatureLimitSet = case (DefTemperatureLimitSetReg#mcp980xTemperatureLimitSetReg.bit_Sign)#bitParam.defValue of
-								 ?MCP980x_TEMP_SIGN_MINUS ->
-									 ((-1) * (DefTemperatureLimitSetReg#mcp980xTemperatureLimitSetReg.bit_TempValue)#bitParam.defValue);
-								 
-								 ?MCP980x_TEMP_SIGN_PLUS ->
-									 (DefTemperatureLimitSetReg#mcp980xTemperatureLimitSetReg.bit_TempValue)#bitParam.defValue
-							 end,
-	R8 = do_set_temperature_limit_set_register(HwAddress, DefTemperatureLimitSet),
+	TempLimit = case (DefTemperatureLimitSetReg#mcp980xTemperatureLimitSetReg.bit_Sign)#bitParam.defValue of
+					?MCP980x_TEMP_SIGN_MINUS ->
+						((-1) * (DefTemperatureLimitSetReg#mcp980xTemperatureLimitSetReg.bit_TempValue)#bitParam.defValue);
+					
+					?MCP980x_TEMP_SIGN_PLUS ->
+						(DefTemperatureLimitSetReg#mcp980xTemperatureLimitSetReg.bit_TempValue)#bitParam.defValue
+				end,
+	
+	init([HwAddress, OneShot, AdcRes, FaultQueue, AlertPol, Mode, Shutdown, TempLimit, TempHyst]);
+
+init([HwAddress, AdcRes, FaultQueue, AlertPol, Mode, TempLimit, TempHyst]) ->
+	DefCfgReg = #mcp980xConfigReg{},
+	OneShot = (DefCfgReg#mcp980xConfigReg.bit_OneShot)#bitParam.defValue,
+	Shutdown = (DefCfgReg#mcp980xConfigReg.bit_ShutDown)#bitParam.defValue,
+	init([HwAddress, OneShot, AdcRes, FaultQueue, AlertPol, Mode, Shutdown, TempLimit, TempHyst]);
+
+init([HwAddress, OneShot, AdcRes, FaultQueue, AlertPol, Mode, Shutdown, TempLimit, TempHyst]) ->
+	%% Configure default setup in the device.
+	R1 = do_set_oneshot_cfg_bit(HwAddress, OneShot),
+	R2 = do_set_adcres_cfg_bit(HwAddress,  AdcRes),
+	R3 = do_set_faultqueue_cfg_bit(HwAddress,  FaultQueue),
+	R4 = do_set_alertpol_cfg_bit(HwAddress,  AlertPol),
+	R5 = do_set_mode_cfg_bit(HwAddress,  Mode),
+	R6 = do_set_shutdown_cfg_bit(HwAddress,  Shutdown),
+	R7 = do_set_temperature_hysteresis_register(HwAddress, TempHyst),
+	R8 = do_set_temperature_limit_set_register(HwAddress, TempLimit),
 
 	case lists:usort([R1, R2, R3, R4, R5, R6, R7, R8]) of
 		[ok] ->
