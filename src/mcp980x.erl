@@ -586,6 +586,18 @@ init([HwAddress, AdcRes, FaultQueue, AlertPol, Mode, TempLimit, TempHyst]) ->
 	init([HwAddress, OneShot, AdcRes, FaultQueue, AlertPol, Mode, Shutdown, TempLimit, TempHyst]);
 
 init([HwAddress, OneShot, AdcRes, FaultQueue, AlertPol, Mode, Shutdown, TempLimit, TempHyst]) ->
+	?DO_INFO("Temperature device configuration",
+			 [
+			  {oneShot, OneShot},
+			  {ddcRes, AdcRes},
+			  {faultQueue, FaultQueue},
+			  {alertPol, AlertPol},
+			  {mode, Mode},
+			  {shutdown, Shutdown},
+			  {tempHyst, TempHyst},
+			  {tempLimit, TempLimit}
+			  ]),
+	
 	%% Configure default setup in the device.
 	R1 = do_set_oneshot_cfg_bit(HwAddress, OneShot),
 	R2 = do_set_adcres_cfg_bit(HwAddress,  AdcRes),
