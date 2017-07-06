@@ -615,7 +615,17 @@ init([HwAddress, OneShot, AdcRes, FaultQueue, AlertPol, Mode, Shutdown, TempLimi
 		ER ->
 			%% At least one bit was not able t oset
 			?DO_ERR("Failed to configure temperature sensor with default value.",
-					[{error, ER}])
+					[
+					 {tempSensorI2CAddr, HwAddress},
+					 {oneShot, OneShot},
+					 {adcRes, AdcRes},
+					 {faultQuete, FaultQueue},
+					 {alertPol, AlertPol},
+					 {mode, Mode},
+					 {shutdown, Shutdown},
+					 {tempLimit, TempLimit},
+					 {tempHyst, TempHyst},
+					 {error, ER}])
 	end,
 	
     {ok, #state{hwAddress = HwAddress}}.
@@ -1162,7 +1172,10 @@ do_get_cfg_bit(HwAddress, CfgBitIdx) ->
 		[{CfgBitIdx, CfgBit}] ->
 			{ok, CfgBit};
 		ER->
-			?DO_ERR("Failed to read cfg bit", [{reason, ER}]),
+			?DO_ERR("Failed to read cfg bit", [
+											   {tempSensorCommDevOnPi, ?MCP980X_COMMUNICATION_DEVICENAME},
+											   {tempSensorI2CAddr, HwAddress},
+											   {reason, ER}]),
 			ER
 	end.
 
@@ -1198,7 +1211,10 @@ do_set_cfg_bit_loop(HwAddress, [{CfgBitIdx, CfgBit} | T]) ->
 		{ok,_} ->
 			do_set_cfg_bit_loop(HwAddress, T);
 		ER->
-			?DO_ERR("Failed to read/set cfg bit", [{reason, ER}]),
+			?DO_ERR("Failed to read/set cfg bit", [
+												   {tempSensorCommDevOnPi, ?MCP980X_COMMUNICATION_DEVICENAME},
+												   {tempSensorI2CAddr, HwAddress},
+												   {reason, ER}]),
 			ER
 	end.
 
