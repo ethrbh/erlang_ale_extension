@@ -61,6 +61,9 @@
 		 get_default_cfg/0
 		 ]).
 
+%% Helper function
+-export([get_temperature_sign/1]).
+
 %% ====================================================================
 %% Includes
 %% ====================================================================
@@ -879,12 +882,14 @@ do_set_temperature_limit_register(HwAddress, TemperatureLimit, DataLengthIdx, Re
 					%% No reminder of the division, the given temperature limit is valid.
 					case get_temperature_sign(TemperatureLimit) of
 						{ok, TempSign} ->
+							%%?DO_INFO("@@@ 1",[]),
 							case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, 
 														 RegisterRec,
 														 DataLengthIdx,
 														 RegisterAddressIdx, 
 														 TempSignBitFieldIdx, TempSign) of
 								{ok, _} ->
+									%%?DO_INFO("@@@ 2",[]),
 									case dev_common:bitfield_set(?MCP980X_COMMUNICATION_DEVICENAME, HwAddress, 
 																 RegisterRec,
 																 DataLengthIdx,
