@@ -21,7 +21,7 @@
 %% Defines
 %% ====================================================================
 -define(SERVER, ?MODULE).
--define(TIMEOUT, 1000).
+-define(GEN_SERVER_CALL_TO, 5000).
 -define(TIME_TO_WAIT_BEFORE_CHECK_OSCILLATOR_STATUS, 500).
 -define(NUMBER_OF_BYTE_TO_READ, 1).
 
@@ -2763,7 +2763,7 @@ write(RegAddr,Value) ->
 do_gen_server_call(MSG) ->
 	case whereis(?SERVER) of
 		P when is_pid(P) ->
-			gen_server:call(?SERVER, MSG, ?TIMEOUT);
+			gen_server:call(?SERVER, MSG, ?GEN_SERVER_CALL_TO);
 		ER->{error, ER}
 	end.
 

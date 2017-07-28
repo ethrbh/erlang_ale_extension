@@ -23,6 +23,7 @@
 %% ====================================================================
 -define(DUMMY_BYTE_FOR_READ, 0).
 -define(SERVER, ?MODULE).
+-define(GEN_SERVER_CALL_TO, 5000).
 
 %% ====================================================================
 %% API functions
@@ -81,7 +82,7 @@ start_link() ->
 			%% Already started
 			{ok, Pid};
 		_->	%% The supervisor does not started yet.
-			gen_server:start_link({local, ?SERVER}, ?MODULE, [], [{timeout, 1000}]) 
+			gen_server:start_link({local, ?SERVER}, ?MODULE, [], [{timeout, ?GEN_SERVER_CALL_TO}]) 
 	end.
 
 %% ====================================================================
@@ -121,7 +122,7 @@ interrupt_polarity_setup(CommType, HwAddr, IntPol) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {interrupt_polarity_setup, CommType, HwAddr, IntPol}, 1000).
+	do_gen_server_call({interrupt_polarity_setup, CommType, HwAddr, IntPol}).
 
 %% ====================================================================
 %% @doc
@@ -142,7 +143,7 @@ interrupt_pin_mirror_setup(CommType, HwAddr, IntPinMirror) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {interrupt_pin_mirror_setup, CommType, HwAddr, IntPinMirror}, 1000).
+	do_gen_server_call({interrupt_pin_mirror_setup, CommType, HwAddr, IntPinMirror}).
 
 %% ====================================================================
 %% Setup and enable interrupt on Pin
@@ -189,7 +190,7 @@ gpio_interrupt_setup(CommType, HwAddr, Port, Pin, IPol, PullUpRes, DefComp, IntC
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_setup_interrupt, CommType, HwAddr, Port, Pin, IPol, PullUpRes, DefComp, IntCtrl}, 1000).
+	do_gen_server_call({gpio_setup_interrupt, CommType, HwAddr, Port, Pin, IPol, PullUpRes, DefComp, IntCtrl}).
 
 %% ====================================================================
 %% @doc
@@ -212,7 +213,7 @@ gpio_interrupt_enable(CommType, HwAddr, Port, Pin) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_enable_interrupt, CommType, HwAddr, Port, Pin}, 1000).
+	do_gen_server_call({gpio_enable_interrupt, CommType, HwAddr, Port, Pin}).
 
 %% ====================================================================
 %% @doc
@@ -235,7 +236,7 @@ gpio_interrupt_disable(CommType, HwAddr, Port, Pin) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_interrupt_disable, CommType, HwAddr, Port, Pin}, 1000).
+	do_gen_server_call({gpio_interrupt_disable, CommType, HwAddr, Port, Pin}).
 
 %% ====================================================================
 %% @doc
@@ -247,7 +248,7 @@ gpio_interrupt_read(CommType, HwAddr) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_interrupt_read, CommType, HwAddr}, 1000).
+	do_gen_server_call({gpio_interrupt_read, CommType, HwAddr}).
 
 %% ====================================================================
 %% @doc
@@ -259,7 +260,7 @@ gpio_interrupt_read(CommType, HwAddr, Port) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_interrupt_read, CommType, HwAddr, Port}, 1000).
+	do_gen_server_call({gpio_interrupt_read, CommType, HwAddr, Port}).
 
 %% ====================================================================
 %% @doc
@@ -275,7 +276,7 @@ gpio_interrupt_get_pin_list_with_int_enabled(CommType, HwAddr, Port) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_interrupt_get_pin_list_with_int_enabled, CommType, HwAddr, Port}, 1000).
+	do_gen_server_call({gpio_interrupt_get_pin_list_with_int_enabled, CommType, HwAddr, Port}).
 
 %% ====================================================================
 %% @doc
@@ -292,7 +293,7 @@ gpio_interrupt_on_change_ctrl_setup(CommType, HwAddr, Port, Pin, IntCtrl) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_interrupt_on_change_ctrl_setup, CommType, HwAddr, Port, Pin, IntCtrl}, 1000).
+	do_gen_server_call({gpio_interrupt_on_change_ctrl_setup, CommType, HwAddr, Port, Pin, IntCtrl}).
 
 %% ====================================================================
 %% @doc
@@ -312,7 +313,7 @@ gpio_default_compare_reg_for_int_on_change_setup(CommType, HwAddr, Port, Pin, De
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_default_compare_reg_for_int_on_change_setup, CommType, HwAddr, Port, Pin, DefComp}, 1000).
+	do_gen_server_call({gpio_default_compare_reg_for_int_on_change_setup, CommType, HwAddr, Port, Pin, DefComp}).
 
 %% ====================================================================
 %% @doc
@@ -329,7 +330,7 @@ gpio_io_direction_setup(CommType, HwAddr, Port, Pin, IODir) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_io_direction_setup, CommType, HwAddr, Port, Pin, IODir}, 1000).
+	do_gen_server_call({gpio_io_direction_setup, CommType, HwAddr, Port, Pin, IODir}).
 
 %% ====================================================================
 %% @doc
@@ -341,8 +342,7 @@ gpio_io_direction_get(CommType, HwAddr, Port) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_io_direction_get, CommType, HwAddr, Port}, 1000).
-
+	do_gen_server_call({gpio_io_direction_get, CommType, HwAddr, Port}).
 
 %% ====================================================================
 %% @doc
@@ -362,7 +362,7 @@ gpio_io_logical_level_setup(CommType, HwAddr, Port, Pin, LogicalLevel) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_io_logical_level_setup, CommType, HwAddr, Port, Pin, LogicalLevel}, 5000).
+	do_gen_server_call({gpio_io_logical_level_setup, CommType, HwAddr, Port, Pin, LogicalLevel}).
 
 %% ====================================================================
 %% @doc
@@ -380,7 +380,7 @@ gpio_io_logical_level_get(CommType, HwAddr, Port) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_io_logical_level_get, CommType, HwAddr, Port}, 5000).
+	do_gen_server_call({gpio_io_logical_level_get, CommType, HwAddr, Port}).
 
 %% ====================================================================
 %% @doc
@@ -399,7 +399,7 @@ gpio_io_logical_level_get(CommType, HwAddr, Port, Pin) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_io_logical_level_get, CommType, HwAddr, Port, Pin}, 1000).
+	do_gen_server_call({gpio_io_logical_level_get, CommType, HwAddr, Port, Pin}).
 	
 %% ====================================================================
 %% @doc
@@ -424,7 +424,7 @@ gpio_pull_up_resistor_setup(CommType, HwAddr, Port, Pin, PullUpRes) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {gpio_pull_up_resistor_setup, CommType, HwAddr, Port, Pin, PullUpRes}, 1000).
+	do_gen_server_call({gpio_pull_up_resistor_setup, CommType, HwAddr, Port, Pin, PullUpRes}).
 
 %% ====================================================================
 %% @doc
@@ -449,7 +449,7 @@ gpio_input_polarity_setup(CommType, HwAddr, Port, Pin, IPol) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {input_polarity_setup, CommType, HwAddr, Port, Pin, IPol}, 1000).
+	do_gen_server_call({input_polarity_setup, CommType, HwAddr, Port, Pin, IPol}).
 
 %% ====================================================================
 %% @doc
@@ -461,7 +461,7 @@ register_read(CommType, HwAddr, RegAddress) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {register_read, CommType, HwAddr, RegAddress}, 1000).
+	do_gen_server_call({register_read, CommType, HwAddr, RegAddress}).
 
 %% ====================================================================
 %% @doc
@@ -473,7 +473,7 @@ i2c_driver_stop(CommType, HwAddr) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {i2c_driver_stop, CommType, HwAddr}, 1000).
+	do_gen_server_call({i2c_driver_stop, CommType, HwAddr}).
  
 %% ====================================================================
 %% @doc
@@ -485,7 +485,7 @@ spi_driver_stop(CommType) ->
 	%% Start server if not yet started.
 	start_link(),
 	
-	gen_server:call(?SERVER, {spi_driver_stop, CommType}, 1000).
+	do_gen_server_call({spi_driver_stop, CommType}).
 
 %% ====================================================================
 %% @doc <a href="http://www.erlang.org/doc/man/gen_server.html#Module:init-1">gen_server:init/1</a>
@@ -1601,4 +1601,17 @@ do_gpio_interrupt_get_pin_list_with_int_enabled(GPINTENRegValue) ->
 									   end
 								   end || Pin <- lists:seq(?MCP23X17_PIN0, ?MCP23X17_PIN7)],
 	{ok, lists:append(PinWithInterruptEnabledList)}.
+
+%% ====================================================================
+%% @doc
+%% Init a gen_server call.
+%% @end
+-spec do_gen_server_call(tuple()) -> term().
+%% ====================================================================
+do_gen_server_call(MSG) ->
+	case whereis(?SERVER) of
+		P when is_pid(P) ->
+			gen_server:call(?SERVER, MSG, ?GEN_SERVER_CALL_TO);
+		ER->{error, ER}
+	end.
 

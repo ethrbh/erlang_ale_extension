@@ -75,8 +75,9 @@
 %% Defines
 %% ====================================================================
 -define(SERVER, ?MODULE).
--define(TIMEOUT, 1000).
+
 -define(NUMBER_OF_BYTE_TO_READ, 1).
+-define(GEN_SERVER_CALL_TO, 5000).
 
 %% ====================================================================
 %% Behavioural functions
@@ -1215,6 +1216,7 @@ do_set_cfg_bit_loop(HwAddress, [{CfgBitIdx, CfgBit} | T]) ->
 								 CfgBit) of
 		{ok,_} ->
 			do_set_cfg_bit_loop(HwAddress, T);
+		
 		ER->
 			?DO_ERR("Failed to read/set cfg bit", [
 												   {tempSensorCommDevOnPi, ?MCP980X_COMMUNICATION_DEVICENAME},
@@ -1232,7 +1234,7 @@ do_set_cfg_bit_loop(HwAddress, [{CfgBitIdx, CfgBit} | T]) ->
 do_gen_server_call(MSG) ->
 	case whereis(?SERVER) of
 		P when is_pid(P) ->
-			gen_server:call(?SERVER, MSG, ?TIMEOUT);
+			gen_server:call(?SERVER, MSG, ?GEN_SERVER_CALL_TO);
 		ER->{error, ER}
 	end.
 

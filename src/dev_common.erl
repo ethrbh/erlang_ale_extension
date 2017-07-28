@@ -19,6 +19,10 @@
 %% ====================================================================
 -include("dev_common.hrl").
 
+%% ====================================================================
+%% Defines
+%% ====================================================================
+-define(SLEEP_AFTER_I2C_WRITE_FOR_READING, 100).
 
 %% ====================================================================
 %% Read a register in I2C device
@@ -30,7 +34,7 @@
 %% ====================================================================
 i2c_read(CommDeviceName, HwAddress, RegAddr, NumberOfByteToRead) ->
 	ale_handler:i2c_write(CommDeviceName, HwAddress, erlang:list_to_binary([RegAddr])),
-	timer:sleep(10),
+	timer:sleep(?SLEEP_AFTER_I2C_WRITE_FOR_READING),
 	case ale_handler:i2c_read(CommDeviceName, HwAddress, NumberOfByteToRead) of
 		{ok, <<Data>>} ->
 			{ok, Data};
