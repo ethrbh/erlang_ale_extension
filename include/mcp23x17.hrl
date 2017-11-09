@@ -74,6 +74,15 @@
 -define(MCP23X17_PIN7, 7).
 
 %% ====================================================================
+%% HAEN - Hardware Address Enable bit
+%% ====================================================================
+-define(MCP23S17_HAEN_ENABLE,  1).
+-define(MCP23S17_HAEN_DISABLE, 0).
+-type mcp23s17_haen_enable()   ::  ?MCP23S17_HAEN_ENABLE.
+-type mcp23s17_haen_disable()  ::  ?MCP23S17_HAEN_DISABLE.
+-type mcp23s17_haen()          ::  mcp23s17_haen_enable() | mcp23s17_haen_disable().
+
+%% ====================================================================
 %% Interrupt polarity
 %% ====================================================================
 -define(MCP23X17_INT_POL_ACTIVE_HIGH,  1).

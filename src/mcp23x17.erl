@@ -29,7 +29,10 @@
 %% API functions
 %% ====================================================================
 -export([
-		 %% General Interrupt related functions
+		 %% Set/Get HAEN - Hardware Address Enable bit. This is valid only for SPI device.
+         haen_set/3, haen_get/2,
+         
+         %% General Interrupt related functions
 		 interrupt_polarity_setup/3, interrupt_pin_mirror_setup/3,
 		 
 		 %% GPIO Interrupt related functions
@@ -104,6 +107,41 @@ stop() ->
 %% Driver functions 
 %% ====================================================================
 
+%% ====================================================================
+%% @doc
+%% Setup HAEN - Hardware Address Enable bit - only for SPI device
+%% Input:
+%%   CommType   : type of serial communication. It can be MCP_COMM_TYPE_SPI | MCP_COMM_TYPE_I2C
+%%   HwAddr     : HW address of MCP chip
+%%   HAEN       : bit
+%% Output:
+%%   -
+%% @end
+-spec haen_set(mcp23x17_comm_type(), hw_addr(), mcp23s17_haen() | {iocon_reg, Regvalue :: byte()}) -> ok  | {error, term()}.
+%% ====================================================================
+haen_set(CommType, HwAddr, HAEN) ->
+    %% Start server if not yet started.
+    start_link(),
+    
+    do_gen_server_call({haen_set, CommType, HwAddr, HAEN}).
+
+%% ====================================================================
+%% @doc
+%% Get HAEN - Hardware Address Enable bit - only for SPI device
+%% Input:
+%%   CommType   : type of serial communication. It can be MCP_COMM_TYPE_SPI | MCP_COMM_TYPE_I2C
+%%   HwAddr     : HW address of MCP chip
+%% Output:
+%%   HAEN       : bit
+%% @end
+-spec haen_get(mcp23x17_comm_type(), hw_addr()) -> {ok, mcp23s17_haen()}  | {error, term()}.
+%% ====================================================================
+haen_get(CommType, HwAddr) ->
+    %% Start server if not yet started.
+    start_link(),
+    
+    do_gen_server_call({haen_get, CommType, HwAddr}).
+    
 %% ====================================================================
 %% @doc
 %% Setup interrupt pin polarity
@@ -520,6 +558,14 @@ init([]) ->
 	Timeout :: non_neg_integer() | infinity,
 	Reason :: term().
 %% ====================================================================
+handle_call({haen_set, CommType, HwAddr, HAEN}, _From, State) ->
+    Reply = do_haen_set(CommType, HwAddr, HAEN),
+    {reply, Reply, State};
+
+handle_call({haen_get, CommType, HwAddr}, _From, State) ->
+    Reply = do_haen_get(CommType, HwAddr),
+    {reply, Reply, State};
+
 handle_call({gpio_setup_interrupt, CommType, HwAddr, Port, Pin, IPol, PullUpRes, DefComp, IntCtrl}, _From, State) ->
 	Reply = do_gpio_interrupt_setup(CommType, HwAddr, Port, Pin, IPol, PullUpRes, DefComp, IntCtrl),
 	{reply, Reply, State};
@@ -679,6 +725,57 @@ code_change(_OldVsn, State, _Extra) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
+
+%% ====================================================================
+%% @doc
+%% Setup HAEN - Hardware Address Enable bit - only for SPI device
+%% Input:
+%%   CommType   : type of serial communication. It can be MCP_COMM_TYPE_SPI | MCP_COMM_TYPE_I2C
+%%   HwAddr     : HW address of MCP chip
+%%   HAEN       : bit, value of HAEN
+%% Output:
+%%   -
+%% @end
+-spec do_haen_set(mcp23x17_comm_type(), hw_addr(), mcp23s17_haen() | {iocon_reg, Regvalue :: byte()}) -> ok  | {error, term()}.
+%% ====================================================================
+do_haen_set(CommType, HwAddr, HAEN) ->
+    case HAEN of
+        {iocon_reg, IOCONRegValue} ->
+            write(CommType, HwAddr, ?IOCON_ADDR, IOCONRegValue);
+        _->
+            case read(CommType, HwAddr, ?IOCON_ADDR) of
+                {ok, IOCONRegValue} ->
+                    NewIOCONRegValue = case HAEN of
+                                           ?MCP23S17_HAEN_ENABLE ->
+                                               bit_operations:bit_set(IOCONRegValue, ?IOCON_HAEN);
+                                           ?MCP23S17_HAEN_DISABLE ->
+                                               bit_operations:bit_clear(IOCONRegValue, ?IOCON_HAEN)
+                                       end,
+                    write(CommType, HwAddr, ?IOCON_ADDR, NewIOCONRegValue);
+                {error, ER} ->
+                    {error, ER}
+            end
+    end.
+
+%% ====================================================================
+%% @doc
+%% Read HAEN - Hardware Address Enable bit - only for SPI device
+%% Input:
+%%   CommType   : type of serial communication. It can be MCP_COMM_TYPE_SPI | MCP_COMM_TYPE_I2C
+%%   HwAddr     : HW address of MCP chip
+%% Output:
+%%   -
+%% @end
+-spec do_haen_get(mcp23x17_comm_type(), hw_addr()) -> {ok, mcp23s17_haen()}  | {error, term()}.
+%% ====================================================================
+do_haen_get(CommType, HwAddr) ->
+    case read(CommType, HwAddr, ?IOCON_ADDR) of
+        {ok, IOCONRegValue} ->
+            HAEN = bit_operations:bit_test(IOCONRegValue, ?IOCON_HAEN),
+            {ok, HAEN};
+        {error, ER} ->
+            {error, ER}
+    end.
 
 %% ====================================================================
 %% Setup and enable interrupt on Pin
@@ -1573,14 +1670,29 @@ set_hwaddr_for_write(HwAddr) ->
 %%		CS_MFA	:	MFA tuple for set/clear CS
 %% Output:
 %%		ok | {error, Reason}
+-spec spi_cs(mfa() | list(mfa())) -> ok | {error, term()}.
 %% ====================================================================
 spi_cs({M,F,A}) ->
+    spi_cs([{M,F,A}]);
+spi_cs(MFA_List) ->
+    do_spi_cs(MFA_List, ok).
+
+do_spi_cs([], Result) ->
+    Result;
+do_spi_cs([{M,F,A} | T], Result) ->
 	%% Special case if MFA belongs to this module.
-	case {M,F} of
-		{?MODULE, gpio_io_logical_level_setup} ->
-			erlang:apply(M, do_gpio_io_logical_level_setup, A);
-		_->	erlang:apply(M, F, A)
-	end.
+    Res = case {M,F} of
+              {?MODULE, gpio_io_logical_level_setup} ->
+                  erlang:apply(M, do_gpio_io_logical_level_setup, A);
+              _->	erlang:apply(M, F, A)
+          end,
+    
+    case Res of
+        ok ->
+            do_spi_cs(T, Result);
+        {error, ER} ->
+            do_spi_cs([], {error, ER})
+    end.
 
 %% ====================================================================
 %% @doc
