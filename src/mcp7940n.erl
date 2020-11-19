@@ -723,7 +723,13 @@ do_init_set_date_and_time(TimeFormat) ->
 	Reason :: term().
 %% ====================================================================
 handle_call({execute_mfa, {M,F,A}}, _From, State)->
-	{reply, erlang:apply(M, F, A), State};
+    Reply = case catch erlang:apply(M, F, A) of
+                {'EXIT', ER} ->
+                    {error, ER};
+                OtherResult ->
+                    OtherResult
+            end,
+	{reply, Reply, State};
 
 handle_call({pwr_status_change_subscribe, PidToSendNotification}, _From, State) ->
 	%% Check that PidToSendNotification is in the list or not.

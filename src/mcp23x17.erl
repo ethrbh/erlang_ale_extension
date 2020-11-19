@@ -23,7 +23,7 @@
 %% ====================================================================
 -define(DUMMY_BYTE_FOR_READ, 0).
 -define(SERVER, ?MODULE).
--define(GEN_SERVER_CALL_TO, 5000).
+-define(GEN_SERVER_CALL_TO, 10000).
 
 %% ====================================================================
 %% API functions
@@ -1681,17 +1681,31 @@ do_spi_cs([], Result) ->
     Result;
 do_spi_cs([{M,F,A} | T], Result) ->
 	%% Special case if MFA belongs to this module.
-    Res = case {M,F} of
+    Res = case catch {M,F} of
+              {'EXIT', ER} ->
+                  {error, ER};
+              
               {?MODULE, gpio_io_logical_level_setup} ->
-                  erlang:apply(M, do_gpio_io_logical_level_setup, A);
-              _->	erlang:apply(M, F, A)
+                  case catch erlang:apply(M, do_gpio_io_logical_level_setup, A) of
+                      {'EXIT', ER} ->
+                          {error, ER};
+                      OtherRes ->
+                          OtherRes
+                  end;
+              
+              _-> case catch erlang:apply(M, F, A) of
+                      {'EXIT', ER} ->
+                          {error, ER};
+                      OtherRes ->
+                          OtherRes
+                  end
           end,
     
     case Res of
         ok ->
             do_spi_cs(T, Result);
-        {error, ER} ->
-            do_spi_cs([], {error, ER})
+        {error, ER2} ->
+            do_spi_cs([], {error, ER2})
     end.
 
 %% ====================================================================
