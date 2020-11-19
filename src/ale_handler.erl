@@ -24,7 +24,7 @@
 %%===================================================================
 -define(SUPERVISOR, erlang_ale_sup).
 -define(SERVER, ?MODULE).
--define(TIMEOUT_FOR_OPERATION, 10000).
+-define(TIMEOUT_FOR_OPERATION, 5000).
 -define(MAX_TRY_ATTEMPTS_FOR_REGISTER_GPIO_INT_PROCESS, 3).
 -define(DELAY_BETWEEN_ATTEMPTS_FOR_REGISTER_GPIO_INT_PROCESS, 1000).
 
@@ -103,7 +103,17 @@ gpio_read(Gpio) when is_integer(Gpio) ->
 			case get_child_spec(ChildId) of
 				{ok, {ChildId, AleHandlerPidT, _Worker, _Modules}} ->
 					%% GPIO is already used. Compare the directios.
-					case gen_server:call(AleHandlerPidT, {get_gpio_direction}, ?TIMEOUT_FOR_OPERATION) of
+					case catch gen_server:call(AleHandlerPidT, {get_gpio_direction}, ?TIMEOUT_FOR_OPERATION) of
+                        {'EXIT', ER} -> 
+                            ?DO_ERR("Erlang ALE supervisor - Genserver-call error occurred", 
+                                     [
+                                      {gpio, Gpio},
+                                      {mf, {?MODULE, gpio_read}},
+                                      {genserver_message, {get_gpio_direction}},
+                                      {aleHandlerPid, AleHandlerPidT},
+                                      {reason, ER}
+                                     ]),
+                            {error, ER};
 						{ok, ?PIN_DIRECTION_INPUT} ->
 							%% Ok, GPIO is used for the same IO direction
 							{ok, AleHandlerPidT};
@@ -131,12 +141,22 @@ gpio_read(Gpio) when is_integer(Gpio) ->
 	case Res of
 		{ok, AleHandlerPid} ->
 			%% Call in to the ale handler gen_server for do the real task.
-			case catch gen_server:call(AleHandlerPid, {gpio_read}, ?TIMEOUT_FOR_OPERATION) of
+            case catch gen_server:call(AleHandlerPid, {gpio_read}, ?TIMEOUT_FOR_OPERATION) of
+                {'EXIT', ER2} ->
+                    ?DO_ERR("Erlang ALE supervisor - Genserver-call error occurred", 
+                            [
+                             {gpio, Gpio},
+                             {mf, {?MODULE, gpio_read}},
+                             {genserver_message, {gpio_read}},
+                             {aleHandlerPid, AleHandlerPid},
+                             {reason, ER2}
+                            ]),
+                    {error, ER2};
 				{ok, PinState} ->
 					PinState;
-				ER->ER
+				ER3->ER3
 			end;
-		ER->ER
+		ER4->ER4
 	end;
 gpio_read(Gpio) ->
 	{error, {invalid_gpio, Gpio}}.
@@ -161,7 +181,17 @@ gpio_write(Gpio, PinState) when is_integer(Gpio), ((PinState == ?PIN_STATE_HIGH)
 			case get_child_spec(ChildId) of
 				{ok, {ChildId, AleHandlerPidT, _Worker, _Modules}} ->
 					%% GPIO is already used. Compare the directios.
-					case gen_server:call(AleHandlerPidT, {get_gpio_direction}, ?TIMEOUT_FOR_OPERATION) of
+					case catch gen_server:call(AleHandlerPidT, {get_gpio_direction}, ?TIMEOUT_FOR_OPERATION) of
+                        {'EXIT', ER} ->
+                            ?DO_ERR("Erlang ALE supervisor - Genserver-call error occurred", 
+                                    [
+                                     {gpio, Gpio},
+                                     {mf, {?MODULE, gpio_write}},
+                                     {genserver_message, {get_gpio_direction}},
+                                     {aleHandlerPid, AleHandlerPidT},
+                                     {reason, ER}
+                                    ]),
+                            {error, ER};
 						{ok, ?PIN_DIRECTION_OUTPUT} ->
 							%% Ok, GPIO is used for the same IO direction
 							{ok, AleHandlerPidT};
@@ -191,9 +221,9 @@ gpio_write(Gpio, PinState) when is_integer(Gpio), ((PinState == ?PIN_STATE_HIGH)
 			case catch gen_server:call(AleHandlerPid, {gpio_write, PinState}, ?TIMEOUT_FOR_OPERATION) of
 				ok ->
 					ok;
-				ER->ER
+				ER2->ER2
 			end;
-		ER->ER
+		ER3->ER3
 	end;
 gpio_write(Gpio, PinState) ->
 	{error, {invalid_gpio_or_pinstate, {Gpio, PinState}}}.
@@ -233,7 +263,17 @@ gpio_set_int(Gpio, IntCondition, Destination) when is_integer(Gpio) ->
 			case get_child_spec(ChildId) of
 				{ok, {ChildId, AleHandlerPidT, _Worker, _Modules}} ->
 					%% GPIO is already used. Compare the directios.
-					case gen_server:call(AleHandlerPidT, {get_gpio_direction}, ?TIMEOUT_FOR_OPERATION) of
+					case catch gen_server:call(AleHandlerPidT, {get_gpio_direction}, ?TIMEOUT_FOR_OPERATION) of
+                        {'EXIT', ER} ->
+                            ?DO_ERR("Erlang ALE supervisor - Genserver-call error occurred", 
+                                    [
+                                     {gpio, Gpio},
+                                     {mf, {?MODULE, gpio_set_int}},
+                                     {genserver_message, {get_gpio_direction}},
+                                     {aleHandlerPid, AleHandlerPidT},
+                                     {reason, ER}
+                                    ]),
+                            {error, ER};
 						{ok, ?PIN_DIRECTION_INPUT} ->
 							%% Ok, GPIO is used for the same purpose
 							{ok, AleHandlerPidT};
@@ -263,9 +303,9 @@ gpio_set_int(Gpio, IntCondition, Destination) when is_integer(Gpio) ->
 			case catch gen_server:call(AleHandlerPid, {gpio_set_int, Gpio, IntCondition, Destination}, ?TIMEOUT_FOR_OPERATION) of
 				ok ->
 					ok;
-				ER->ER
+				ER2->ER2
 			end;
-		ER->ER
+		ER3->ER3
 	end;
 gpio_set_int({sup, Gpio}, IntCondition, Destination) ->
  	%% Start ALE handler if not started yet.
@@ -283,6 +323,16 @@ gpio_release(Gpio) when is_integer(Gpio) ->
 	case get_child_spec({gpio, Gpio}) of
 		{ok, {ChildId, AleHandlerPid, _Worker, _Modules}} ->
 			case catch gen_server:call(AleHandlerPid, {gpio_release}, ?TIMEOUT_FOR_OPERATION) of
+                {'EXIT', ER} ->
+                    ?DO_ERR("Erlang ALE supervisor - Genserver-call error occurred", 
+                            [
+                             {gpio, Gpio},
+                             {mf, {?MODULE, gpio_release}},
+                             {genserver_message, {gpio_release}},
+                             {aleHandlerPid, AleHandlerPid},
+                             {reason, ER}
+                            ]),
+                    {error, ER};
 				ok ->
 					%% Terminate and delete child process.
 					case supervisor:terminate_child(?SUPERVISOR, ChildId) of
@@ -309,6 +359,15 @@ i2c_stop(DeviceName, HWAddress) ->
 	case get_child_spec({i2c, DeviceName, HWAddress}) of
 		{ok, {ChildId, AleHandlerPid, _Worker, _Modules}} ->
 			case catch gen_server:call(AleHandlerPid, {i2c_stop}, ?TIMEOUT_FOR_OPERATION) of
+                {'EXIT', ER} ->
+                    ?DO_ERR("Erlang ALE supervisor - Genserver-call error occurred", 
+                            [
+                             {mf, {?MODULE, i2c_stop}},
+                             {genserver_message, {i2c_stop}},
+                             {aleHandlerPid, AleHandlerPid},
+                             {reason, ER}
+                            ]),
+                    {error, ER};
 				ok ->
 					%% Terminate and delete child process.
 					case supervisor:terminate_child(?SUPERVISOR, ChildId) of
@@ -376,25 +435,25 @@ i2c_read({sup, DeviceName}, HWAddress, Len) ->
  	start_link({?MODULE, i2c_read,  [DeviceName, HWAddress, Len]}, {?DRV_I2C_MODULE, ?START_FUNC_DRV_MODULE, [DeviceName, HWAddress]});
 i2c_read(DeviceName, HWAddress, Len) ->
 	%% Start supervisor if not started yet.
-	Res = case do_start_erlang_ale_sup() of
-		{ok, _SupPid} ->
-			
-			%% Start child process if not started yet.
-			ChildId = {i2c, DeviceName, HWAddress},
-			case supervisor:start_child(?SUPERVISOR,
-											  {ChildId, 
-											   {?MODULE, i2c_read, [{sup, DeviceName}, HWAddress, Len]},
-											   transient, 10, worker, [?MODULE]}) of
-				{ok, PidT} ->
-					{ok, PidT};
-				{error, {already_started, PidT}} ->
-					{ok, PidT};
-				ERT ->
-					{error, ERT}
-			end;
-		ERT ->
-		  {error, ERT}
-	end,
+    Res = case do_start_erlang_ale_sup() of
+              {ok, _SupPid} ->
+                  
+                  %% Start child process if not started yet.
+                  ChildId = {i2c, DeviceName, HWAddress},
+                  case supervisor:start_child(?SUPERVISOR,
+                                              {ChildId, 
+                                               {?MODULE, i2c_read, [{sup, DeviceName}, HWAddress, Len]},
+                                               transient, 10, worker, [?MODULE]}) of
+                      {ok, PidT} ->
+                          {ok, PidT};
+                      {error, {already_started, PidT}} ->
+                          {ok, PidT};
+                      ERT ->
+                          {error, ERT}
+                  end;
+              ERT ->
+                  {error, ERT}
+          end,
 	
 	case Res of
 		{ok, AleHandlerPid} ->
@@ -416,6 +475,15 @@ spi_stop(DeviceName) ->
 	case get_child_spec({spi, DeviceName}) of
 		{ok, {ChildId, AleHandlerPid, _Worker, _Modules}} ->
 			case catch gen_server:call(AleHandlerPid, {spi_stop}, ?TIMEOUT_FOR_OPERATION) of
+                {'EXIT', ER} ->
+                    ?DO_ERR("Erlang ALE supervisor - Genserver-call error occurred", 
+                            [
+                             {mf, {?MODULE, spi_stop}},
+                             {genserver_message, {spi_stop}},
+                             {aleHandlerPid, AleHandlerPid},
+                             {reason, ER}
+                            ]),
+                    {error, ER};
 				ok ->
 					%% Terminate and delete child process.
 					case supervisor:terminate_child(?SUPERVISOR, ChildId) of
@@ -901,11 +969,13 @@ do_get_child_spec(WhatToFind, [_|T]) ->
 -spec do_start_erlang_ale_sup() -> {ok, pid()} | {error, term()}.
 %% ====================================================================
 do_start_erlang_ale_sup() ->
-	case erlang_ale_sup:start_link() of
+	case catch erlang_ale_sup:start_link() of
 		{ok, Pid} ->
 			{ok, Pid};
 		{error,{already_started,Pid}} ->
 			{ok, Pid};
 		{error, R} ->
-			{error, R}
+			{error, R};
+        ER ->
+            {error, ER}
 	end.
